@@ -139,8 +139,7 @@
     (setf (aref vec i) (complex 1d0 0d0))
     vec))
 
-;; todo: unroll, fully or partially
-(defun unrolled-for (count bindings body)
+(defun emit-unrolled-for (count bindings body)
   `(progn
      ,@(loop
          for i below count
@@ -162,9 +161,9 @@
                           (list name start stride)))))
     (cond ((and (integerp count)
                 (<= count 8)
-                (not (find-if-not #'atom bindings :key #'second))
-                (not (find-if-not #'constantp bindings :key #'third)))
-           (unrolled-for count bindings body))
+                (not (position-if-not #'atom bindings :key #'second))
+                (not (position-if-not #'constantp bindings :key #'third)))
+           (emit-unrolled-for count bindings body))
           ((and (integerp count)
                 (zerop (mod count 4))
                 (not (find-if-not #'constantp bindings :key #'third)))
