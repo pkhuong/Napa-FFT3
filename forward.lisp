@@ -27,6 +27,7 @@
                   (aref vec (+ start 2)) (- s0-s2 s1-s3)
                   (aref vec (+ start 3)) (+ s0-s2 s1-s3)))
           nil)
+        ;; I think this one is worse than split-radix
         `(dif/8 (start)
           (declare (type index start))
           (let* ((s0 (aref vec start))
@@ -52,16 +53,16 @@
                   (b (+ s1+5 s3+7)))
               (setf (aref vec       start) (+ a b)
                     (aref vec (+ start 1)) (- a b)))
-            (let ((a (+ s0-4 ,(mul-root 's2-6 -2/8)))
-                  (b ,(mul-root `(+ s1-5 ,(mul-root 's3-7 -2/8))
-                                -1/8)))
-              (setf (aref vec (+ start 4)) (+ a b)
-                    (aref vec (+ start 5)) (- a b)))
             (let ((a (- s0+4 s2+6))
                   (b ,(mul-root '(- s1+5 s3+7)
                                 -2/8)))
               (setf (aref vec (+ start 2)) (+ a b)
                     (aref vec (+ start 3)) (- a b)))
+            (let ((a (+ s0-4 ,(mul-root 's2-6 -2/8)))
+                  (b ,(mul-root `(+ s1-5 ,(mul-root 's3-7 -2/8))
+                                -1/8)))
+              (setf (aref vec (+ start 4)) (+ a b)
+                    (aref vec (+ start 5)) (- a b)))
             (let ((a (+ s0-4 ,(mul-root 's2-6 -6/8)))
                   (b ,(mul-root `(+ ,(mul-root 's1-5 -2/8)
                                     s3-7)
@@ -79,7 +80,6 @@
              (gen (n)
                (cond
                  ((= n 16)
-                  (gen 4)
                   (gen 8)
                   (push
                    `(dif/16 (start)
@@ -171,8 +171,7 @@
                `(for (,n (i start)
                          ,@(and window `((j window-start))))
                   (setf (aref vec i) (%scale
-                                      (%window (* (aref vec i)
-                                               (aref window j))
+                                      (%window (aref vec i)
                                                ,window
                                                ,(if window 'j 0))
                                       ,scale))))
