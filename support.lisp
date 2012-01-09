@@ -60,7 +60,8 @@
 
 (define-inline-function %scale (x scale)
   (declare (type complex-sample x)
-           (type double-float scale))
+           (type double-float scale)
+           (muffle-conditions sb-ext:code-deletion-note))
   (case scale
     (1d0 x)
     (-1d0 (- x))
@@ -69,7 +70,8 @@
 (define-inline-function %window (x window i)
   (declare (type complex-sample x)
            (type (or null (simple-array * 1)) window)
-           (type index i))
+           (type index i)
+           (muffle-conditions sb-ext:code-deletion-note))
   (if window
       (* x (aref window i))
       x))
