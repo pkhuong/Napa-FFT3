@@ -192,3 +192,8 @@
                   do (locally
                          ,@body))))))
 
+(defun iota (n)
+  (let ((count 0))
+    (map-into (make-array n :element-type 'complex-sample)
+              (lambda ()
+                (complex (incf count) 1d0)))))
