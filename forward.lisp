@@ -171,10 +171,10 @@
                `(for (,n (i start)
                          ,@(and window `((j window-start))))
                   (setf (aref vec i) (%scale
-                                      ,(if window
-                                           `(* (aref vec i)
+                                      (%window (* (aref vec i)
                                                (aref window j))
-                                           `(aref vec i))
+                                               ,window
+                                               ,(if window 'j 0))
                                       ,scale))))
          (,(name n) start)))))
 
