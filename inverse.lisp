@@ -2,8 +2,12 @@
 
 (defun gen-base-dits (&key window)
   (list `(dit/1 (start ,@(and window '(window-start)))
-          (declare (ignore start
-                           ,@(and window '(window-start))))
+          (declare (ignorable start
+                              ,@(and window '(window-start))))
+          ,(and window
+                `(setf (aref vec start)
+                       (* (aref vec start)
+                          (aref ,window window-start))))
           nil)
         `(dit/2 (start ,@(and window '(window-start)))
           (declare (type index start
