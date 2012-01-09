@@ -58,6 +58,22 @@
   #- (and sbcl complex-float-vops)
   (* x (complex scale (- scale))))
 
+(define-inline-function %scale (x scale)
+  (declare (type complex-sample x)
+           (type double-float scale))
+  (case scale
+    (1d0 x)
+    (-1d0 (- x))
+    (t  (* x scale))))
+
+(define-inline-function %window (x window i)
+  (declare (type complex-sample x)
+           (type (or null (simple-array * 1)) window)
+           (type index i))
+  (if window
+      (* x (aref window i))
+      x))
+
 (defun mul-root (x root &optional default)
   (setf root (mod root 1))
   (case root

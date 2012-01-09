@@ -70,9 +70,10 @@
                     (aref vec (+ start 7)) (- a b)))
             nil))))
 
-(defun gen-dif (n)
+(defun gen-dif (n &key (scale 1d0) window)
   (let ((defs '())
-        (base-defs (gen-base-difs)))
+        (base-defs (gen-base-difs))
+        (last n))
     (labels ((name (n)
                (intern (format nil "~A/~A" 'dif n)))
              (gen (n)
@@ -86,9 +87,20 @@
                      (let* ((start2 (+ start  8))
                             (start3 (+ start2 4)))
                        (for (8 (i start)
-                               (j start2))
-                         (let ((x (aref vec i))
-                               (y (aref vec j)))
+                               (j start2)
+                               ,@(and (= n last)
+                                      window
+                                      `((k window-start))))
+                         (let ((x ,(if (= n last)
+                                       `(%window (%scale (aref vec i) ,scale)
+                                                 ,window
+                                                 ,(if window 'k 0))
+                                       `(aref vec i)))
+                               (y ,(if (= n last)
+                                       `(%window (%scale (aref vec j) ,scale)
+                                                 ,window
+                                                 ,(if window `(+ k 8) 0))
+                                       `(aref vec j))))
                            (setf (aref vec i) (+ x y)
                                  (aref vec j) (- x y))))
                        (dif/8 start)
@@ -98,14 +110,16 @@
                            `(let ((x (aref vec (+ start2 ,i)))
                                   (y (mul-i (aref vec (+ start3 ,i)))))
                               (setf (aref vec (+ start2 ,i))
-                                    ,(mul-root `(+ x y) (* 1/16 i)
-                                               `(aref twiddle ,(+ 8 +twiddle-offset+
-                                                                  (* 2 i))))
+                                    ,(mul-root
+                                      `(+ x y) (* 1/16 i)
+                                      `(aref twiddle ,(+ 8 +twiddle-offset+
+                                                         (* 2 i))))
                                     (aref vec (+ start3 ,i))
-                                    ,(mul-root `(- x y) (* 3/16 i)
-                                               `(aref twiddle ,(+ 8 +twiddle-offset+
-                                                                  1
-                                                                  (* 2 i)))))))
+                                    ,(mul-root
+                                      `(- x y) (* 3/16 i)
+                                      `(aref twiddle ,(+ 8 +twiddle-offset+
+                                                         1
+                                                         (* 2 i)))))))
                        (dif/4 start2)
                        (dif/4 start3)))
                    defs))
@@ -121,9 +135,20 @@
                               (let* ((start2 (+ start  ,n/2))
                                      (start3 (+ start2 ,n/4)))
                                 (for (,n/2 (i start)
-                                           (j start2))
-                                  (let ((x (aref vec i))
-                                        (y (aref vec j)))
+                                           (j start2)
+                                           ,@(and (= n last)
+                                                  window
+                                                  `((k window-start))))
+                                  (let ((x ,(if (= n last)
+                                                `(%window (%scale (aref vec i) ,scale)
+                                                          ,window
+                                                          ,(if window 'k 0))
+                                                `(aref vec i)))
+                                        (y ,(if (= n last)
+                                                `(%window (%scale (aref vec j) ,scale)
+                                                          ,window
+                                                          ,(if window `(+ k ,n/2) 0))
+                                                `(aref vec j))))
                                     (setf (aref vec i) (+ x y)
                                           (aref vec j) (- x y))))
                                 (,name/2 start)
@@ -144,6 +169,17 @@
          (declare (ignorable ,@(mapcar (lambda (x) `#',(car x)) base-defs))
                   (inline ,@(mapcar #'car base-defs)
                           ,(name n)))
+         ,(and (<= n *fwd-base-case*)
+               (not (and (eql scale 1d0)
+                         (null window)))
+               `(for (,n (i start)
+                         ,@(and window `((j window-start))))
+                  (setf (aref vec i) (%scale
+                                      ,(if window
+                                           `(* (aref vec i)
+                                               (aref window j))
+                                           `(aref vec i))
+                                      ,scale))))
          (,(name n) start)))))
 
 (defun %dif (vec start n twiddle)
