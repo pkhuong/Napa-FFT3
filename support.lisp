@@ -117,14 +117,15 @@
 
 (defconstant +twiddle-offset+ -1)
 
-(defun make-twiddle (n)
+(defun make-twiddle (n &optional (dir 1d0))
   (assert (= 1 (logcount n)))
+  (check-type dir (member 1d0 -1d0))
   (let ((vec (make-array n :element-type 'complex-sample
                            :initial-element (complex 0d0 0d0))))
     (loop for size = 4 then (* 2 size)
           while (<= size n)
           do (let ((start (+ (truncate size 2) +twiddle-offset+))
-                   (base  (/ (* 2 pi) size)))
+                   (base  (/ (* dir 2 pi) size)))
                (dotimes (i (truncate size 4))
                  (let* ((theta (* -1 i base))
                         (t1 (cis theta))
