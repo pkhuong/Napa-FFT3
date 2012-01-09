@@ -1,3 +1,5 @@
+(defvar *fwd-base-case* 8)
+
 (defun gen-base-difs ()
   (list `(dif/1 (start)
           (declare (ignore start))
@@ -76,6 +78,8 @@
              (gen (n)
                (cond
                  ((= n 16)
+                  (gen 4)
+                  (gen 8)
                   (push
                    `(dif/16 (start)
                      (declare (type index start))
@@ -105,7 +109,7 @@
                        (dif/4 start2)
                        (dif/4 start3)))
                    defs))
-                 ((> n 8)
+                 ((> n *fwd-base-case*)
                   (gen (truncate n 2))
                   (let* ((n/2 (truncate n 2))
                          (n/4 (truncate n 4))
