@@ -129,7 +129,7 @@
                    (bit-reverse y2))))))
 
 (defun forward-test (size &optional (prob 1d-5))
-  (let ((repeat (ceiling (log (/ 2d0 prob))))
+  (let ((repeat (ceiling (log (/ 2d0 prob) 2d0)))
         (fun    (make-forward-fun size)))
     (assert (plusp repeat))
     (%forward-test-1 size repeat fun)
