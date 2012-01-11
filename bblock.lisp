@@ -25,7 +25,7 @@
   deps
   writes)
 
-(defun %op (result-types body args)
+(defun %%op (result-types body args)
   (let ((results (mapcar (lambda (type)
                            (vval type))
                          result-types)))
@@ -36,10 +36,13 @@
 
 (defvar *ops*)
 
-(defun op (result-types body args)
-  (let ((op (%op result-types body args)))
+(defun %op (result-types body args)
+  (let ((op (%%op result-types body args)))
     (vector-push-extend op *ops*)
     (values-list (op-writes op))))
+
+(defmacro op ((&rest types) body &rest args)
+  `(%op ',types ,body (list ,@args)))
 
 (defvar *vector*)
 
@@ -114,9 +117,9 @@
                   (load-op
                    (let ((var (load-op-var op)))
                      `((,(vval-name var)) (,(vval-type var))
-                       (aref vec ,(load-op-idx op)))))
+                       (aref vec (+ start ,(load-op-idx op))))))
                   (store-op
-                   `(() () (setf (aref vec ,(store-op-idx op))
+                   `(() () (setf (aref vec (+ start ,(store-op-idx op)))
                                  ,(let ((var (store-op-var op)))
                                     (if (vval-p var)
                                         (vval-name var)
@@ -231,3 +234,20 @@
             for i upfrom 0
             do (insert-write val i))
       new)))
+
+(defun butterfly (i j)
+  (setf (values (@ i) (@ j))
+        (op (complex-sample complex-sample)
+            `(lambda (x y)
+               (values (+ x y)
+                       (- x y)))
+            (@ i) (@ j))))
+
+(defun rotate (i k root)
+  (setf (@ i)
+        (op (complex-sample)
+            `(lambda (x)
+               ,(mul-root 'x root
+                          (and k
+                               `(aref twiddle ,k))))
+            (@ i))))
