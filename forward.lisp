@@ -108,12 +108,12 @@
                                   (y (mul-i (aref vec (+ start ,(+ i 8 4))))))
                               (setf (aref vec (+ start ,(+ i 8)))
                                     ,(mul-root
-                                      `(+ x y) (* 1/16 i)
+                                      `(+ x y) (* -1/16 i)
                                       `(aref twiddle ,(+ 8 +twiddle-offset+
                                                          (* 2 i))))
                                     (aref vec (+ start ,(+ i 8 4)))
                                     ,(mul-root
-                                      `(- x y) (* 3/16 i)
+                                      `(- x y) (* -3/16 i)
                                       `(aref twiddle ,(+ 8 +twiddle-offset+
                                                          1
                                                          (* 2 i)))))))

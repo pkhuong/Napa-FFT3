@@ -126,12 +126,12 @@
                          collect
                          `(let ((x ,(mul-root
                                      `(aref vec (+ start ,(+ i 8)))
-                                     (* -1/16 i)
+                                     (* 1/16 i)
                                      `(aref twiddle ,(+ 8 +twiddle-offset+
                                                         (* 2 i)))))
                                 (y ,(mul-root
                                      `(aref vec (+ start ,(+ i 8 4)))
-                                     (* -3/16 i)
+                                     (* 3/16 i)
                                      `(aref twiddle ,(+ 8 +twiddle-offset+
                                                         1
                                                         (* 2 i))))))
