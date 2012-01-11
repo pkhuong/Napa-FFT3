@@ -125,3 +125,10 @@
           (setf (aref y1 i) (* mul (aref y1 i))
                 mul         (* mul root)))
         (check-eqv y1 y2)))))
+
+(defun forward-test (size &optional (prob 1d-5))
+  (let ((repeat (log (/ prob 2d0)))
+        (fun    (make-forward-fun size)))
+    (%forward-test-1 size repeat fun)
+    (%forward-test-2 size repeat fun)
+    (%forward-test-3 size repeat (+ repeat 2) fun)))
