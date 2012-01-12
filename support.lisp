@@ -166,28 +166,32 @@
                             (if (consp binding)
                                 binding
                                 (list binding))
-                          (list name start stride)))))
+                          (list name start stride))))
+        (unroll (macroexpand-1 '%unroll-count% env))
+        (blocking (macroexpand-1 '%blocking-factor% env)))
     (cond ((and (integerp count)
-                (<= count (macroexpand-1 '%unroll-count% env))
+                (<= count unroll)
                 (not (position-if-not #'atom bindings :key #'second))
                 (not (position-if-not #'constantp bindings :key #'third)))
            (emit-unrolled-for count bindings body))
           ((and (integerp count)
-                (zerop (mod count (macroexpand-1 '%blocking-factor% env)))
+                (zerop (mod count blocking))
                 (not (find-if-not #'constantp bindings :key #'third)))
-           (let* ((factor (macroexpand-1 '%blocking-factor% env))
-                  (gensyms (mapcar (lambda (binding)
-                                     (make-symbol (symbol-name (first binding))))
+           (let ((gensyms (mapcar (lambda (binding)
+                                     (make-symbol (symbol-name
+                                                   (first binding))))
                                    bindings)))
-             `(loop for ,(gensym "DUMMY") of-type index from ,(truncate count
-                                                                        factor)
+             `(loop for ,(gensym "DUMMY") of-type index
+                      from ,(truncate count
+                                      blocking)
                       above 0
                     ,@(loop for (name start stride) in bindings
                             for gensym in gensyms
-                            append `(for ,gensym of-type index from ,start by ,(* stride factor)))
+                            append `(for ,gensym of-type index from ,start
+                                      by ,(* stride blocking)))
                     do (progn
                          ,@(loop
-                             for i below factor
+                             for i below blocking
                              collect
                              `(symbol-macrolet
                                   ,(loop for (name start stride) in bindings
