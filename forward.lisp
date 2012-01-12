@@ -1,7 +1,7 @@
 (defvar *fwd-base-case* 32)
 
-(defun gen-flat-dif (n &key (scale 1d0) window)
-  (with-vector (n :maxlive 13)
+(defun %gen-flat-dif (n scale window)
+  (with-vector (n)
     (let ((last n))
       (labels ((rec (start n)
                  (cond
@@ -41,6 +41,13 @@
                       (rec start2 n/4)
                       (rec start3 n/4))))))
         (rec 0 n)))))
+
+(defun gen-flat-dif (n &key (scale 1d0) window)
+  (let ((table (load-time-value (make-hash-table :test #'equal)))
+        (key   (list n scale window)))
+    (or (gethash key table)
+        (setf (gethash key table)
+              (%gen-flat-dif n scale window)))))
 
 (defun gen-dif (n &key (scale 1d0) window)
   (let ((defs '())

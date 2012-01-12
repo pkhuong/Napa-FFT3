@@ -1,6 +1,6 @@
 (defvar *inv-base-case* 32)
 
-(defun gen-flat-dit (n &key (scale 1d0) window)
+(defun %gen-flat-dit (n scale window)
   (with-vector (n)
     (labels ((rec (start n)
                (cond
@@ -35,6 +35,12 @@
                                  (+ start2 i))))))))
       (rec 0 n))))
 
+(defun gen-flat-dit (n &key (scale 1d0) window)
+  (let ((table (load-time-value (make-hash-table :test #'equal)))
+        (key   (list n scale window)))
+    (or (gethash key table)
+        (setf (gethash key table)
+              (%gen-flat-dit n scale window)))))
 
 (defun gen-dit (n &key (scale 1d0) window)
   (let ((defs '())
