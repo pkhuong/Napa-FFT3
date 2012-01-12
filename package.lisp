@@ -4,7 +4,11 @@
            "DIRECTION" "SCALING" "WINDOWING"
            "%ENSURE-TWIDDLES"
            "%ENSURE-REVERSE" "GET-REVERSE"
-           "%ENSURE-FFT" "GET-FFT" "GET-WINDOWED-FFT"))
+           "%ENSURE-FFT" "GET-FFT" "GET-WINDOWED-FFT"
+
+           "BIT-REVERSE"
+           "FFT" "IFFT"
+           "SFFT" "SIFFT"))
 
 (defpackage "NAPA-FFT.SUPPORT"
   (:use "CL" "SB-EXT" "NAPA-FFT")
