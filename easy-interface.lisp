@@ -101,12 +101,14 @@
                  (coerce x 'complex-sample))
                vec))))
 
-(defun sfft (vec &key (in-order t) (scale nil))
+(defun sfft (vec &key (in-order t) (scale nil) (window nil))
   (fft (complex-samplify vec)
        :in-order in-order
-       :scale scale))
+       :scale scale
+       :window window))
 
-(defun sifft (vec &key (in-order t) (scale t))
+(defun sifft (vec &key (in-order t) (scale t) (window nil))
   (ifft (complex-samplify vec)
         :in-order in-order
-        :scale scale))
+        :scale scale
+        :window window))
