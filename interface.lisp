@@ -34,6 +34,7 @@
   (declare (type direction direction)
            (type scaling   scaling)
            (type windowing windowing))
+  (assert (= 1 (logcount n)))
   (let ((direction (ecase direction
                      ((1 :fwd) 1)
                      ((-1 :inv :bwd) -1)))
