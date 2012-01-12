@@ -29,7 +29,7 @@
                                    (type index start))
                           twiddle
                           ,(gen-dit n :scale (/ 1d0 n fwd-scale)))))
-         (iota (iota n))
+         (iota (random-vector n))
          (copy (copy-seq iota)))
     (funcall fwd copy 0
              (make-twiddle n))
@@ -40,15 +40,18 @@
 (defun run-pairs (max)
   (format t "scale: 1~%")
   (loop for i upto max
-        do (format t "~A: ~A~%" i (test-pairs (ash 1 i))))
+        do (format t "~A: ~A~%" i (/ (test-pairs (ash 1 i))
+                                     (max i 1))))
   (format t "scale: sqrt~%")
   (loop for i upto max
-        do (format t "~A: ~A~%" i (test-pairs (ash 1 i)
-                                              (/ (sqrt (float (ash 1 i) 1d0))))))
+        do (format t "~A: ~A~%" i (/ (test-pairs (ash 1 i)
+                                                 (/ (sqrt (float (ash 1 i) 1d0))))
+                                     (max i 1))))
   (format t "scale: 1/n~%")
   (loop for i upto max
-        do (format t "~A: ~A~%" i (test-pairs (ash 1 i)
-                                              (/ (float (ash 1 i) 1d0))))))
+        do (format t "~A: ~A~%" i (/ (test-pairs (ash 1 i)
+                                                 (/ (float (ash 1 i) 1d0)))
+                                     (max i 1)))))
 
 (defun make-dummy-window (n)
   (map-into (make-array n :element-type 'double-float)
@@ -85,7 +88,7 @@
                           twiddle window window-start
                           ,(gen-dit n :scale  scale
                                       :window (and window-inv 'window)))))
-         (iota (iota n))
+         (iota (random-vector n))
          (copy (copy-seq iota)))
     (when window-fwd
       (apply-window-inv copy window))
@@ -104,7 +107,8 @@
               (if fwd "T" "F")
               (if inv "T" "F"))
       (loop for i upto max do
-        (format t "~A: ~A~%" i (test-window (ash 1 i)
-                                            :window window
-                                            :window-fwd fwd
-                                            :window-inv inv))))))
+        (format t "~A: ~A~%" i (/ (test-window (ash 1 i)
+                                               :window window
+                                               :window-fwd fwd
+                                               :window-inv inv)
+                                  (max i 1)))))))
