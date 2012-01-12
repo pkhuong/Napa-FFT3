@@ -102,16 +102,19 @@
      (assert default)
      `(* ,x ,default))))
 
-(defun bit-reverse (array)
+(defun bit-reverse-integer (x width)
+  (let ((acc 0))
+    (loop repeat width
+          for bit = (logand x 1)
+          do (setf x (ash x -1))
+             (setf acc (logior (ash acc 1) bit))
+          finally (return acc))))
+
+(defun slow-bit-reverse (array)
   (let ((dst (copy-seq array))
         (width (integer-length (1- (length array)))))
     (flet ((rev (x)
-             (let ((acc 0))
-               (loop repeat width
-                     for bit = (logand x 1)
-                     do (setf x (ash x -1))
-                        (setf acc (logior (ash acc 1) bit))
-                     finally (return acc)))))
+             (bit-reverse-integer x width)))
       (dotimes (i (length array) dst)
         (setf (aref dst (rev i)) (aref array i))))))
 
@@ -152,7 +155,11 @@
             ,@body))
      nil))
 
-(defmacro for ((count &rest bindings) &body body)
+(define-symbol-macro %blocking-factor% 4)
+(define-symbol-macro %unroll-count% 8)
+
+(defmacro for ((count &rest bindings) &body body
+               &environment env)
   (let ((bindings (loop for binding in bindings
                         collect
                         (destructuring-bind (name &optional (start 0) (stride 1))
@@ -161,23 +168,26 @@
                                 (list binding))
                           (list name start stride)))))
     (cond ((and (integerp count)
-                (<= count 8)
+                (<= count (macroexpand-1 '%unroll-count% env))
                 (not (position-if-not #'atom bindings :key #'second))
                 (not (position-if-not #'constantp bindings :key #'third)))
            (emit-unrolled-for count bindings body))
           ((and (integerp count)
-                (zerop (mod count 4))
+                (zerop (mod count (macroexpand-1 '%blocking-factor% env)))
                 (not (find-if-not #'constantp bindings :key #'third)))
-           (let ((gensyms (mapcar (lambda (binding)
-                                    (make-symbol (symbol-name (first binding))))
-                                  bindings)))
-             `(loop for ,(gensym "DUMMY") of-type index from ,(truncate count 4) above 0
+           (let* ((factor (macroexpand-1 '%blocking-factor% env))
+                  (gensyms (mapcar (lambda (binding)
+                                     (make-symbol (symbol-name (first binding))))
+                                   bindings)))
+             `(loop for ,(gensym "DUMMY") of-type index from ,(truncate count
+                                                                        factor)
+                      above 0
                     ,@(loop for (name start stride) in bindings
                             for gensym in gensyms
-                            append `(for ,gensym of-type index from ,start by ,(* stride 4)))
+                            append `(for ,gensym of-type index from ,start by ,(* stride factor)))
                     do (progn
                          ,@(loop
-                             for i below 4
+                             for i below factor
                              collect
                              `(symbol-macrolet
                                   ,(loop for (name start stride) in bindings
@@ -197,4 +207,8 @@
   (let ((count 0))
     (map-into (make-array n :element-type 'complex-sample)
               (lambda ()
-                (complex (incf count) 1d0)))))
+                (complex (1- (incf count))
+                         1d0)))))
+
+(defun lb (n)
+  (integer-length (1- n)))
