@@ -112,3 +112,60 @@
                                                :window-fwd fwd
                                                :window-inv inv)
                                   (max i 1)))))))
+
+(defun test-offset (n)
+  (let ((funs (mapcar
+               (lambda (x)
+                 (compile nil x))
+               `((lambda (vec start window window-start)
+                   (declare (type complex-sample-array 
+                                  vec)
+                            (type (simple-array double-float 1)
+                                  window)
+                            (type index start window-start))
+                   (let ((twiddle ,(make-twiddle n)))
+                     twiddle
+                     ,(gen-dif n :window 'window)))
+                 (lambda (vec start window window-start)
+                   (declare (type complex-sample-array 
+                                  vec)
+                            (type (simple-array double-float 1)
+                                  window)
+                            (type index start window-start))
+                   (let ((twiddle ,(make-twiddle n -1d0)))
+                     twiddle
+                     ,(gen-dit n :window 'window))))))
+        (diff 0d0))
+    (dolist (fun funs diff)
+      (let* ((window (make-dummy-window n))
+             (offset-window (make-array (+ n 7)
+                                        :element-type 'double-float))
+             (iota (random-vector n))
+             (offset-iota (make-vector (+ n 13)))
+             (ref  (copy-seq iota)))
+        (replace offset-window window :start1 7)
+        (replace offset-iota   iota   :start1 13)
+        (funcall fun ref 0 window 0)
+        (dolist (offset-window-p '(t nil))
+          (multiple-value-bind (window window-start)
+              (if offset-window-p
+                  (values offset-window 7)
+                  (values window        0))
+            (dolist (offset-data-p (if offset-window-p
+                                       '(t nil)
+                                       '(t)))
+              (multiple-value-bind (data start)
+                  (if offset-data-p
+                      (values offset-iota 13)
+                      (values iota        0))
+                (setf data (copy-seq data))
+                (funcall fun
+                         data start
+                         window window-start)
+                (let ((data (subseq data start)))
+                  (setf diff (max diff (delta ref data))))))))))))
+
+(defun run-offsets (max)
+  (format t "Offset: should always have exactly 0 error~%")
+  (loop for i upto max do
+    (format t "~A: ~A~%" i (test-offset (ash 1 i)))))
