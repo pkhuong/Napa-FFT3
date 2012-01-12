@@ -11,13 +11,9 @@
   (:export "INDEX" "HALF-INDEX"
            "SIZE" "HALF-SIZE"
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
-           "BIT-REVERSE-INTEGER" "SLOW-BIT-REVERSE"
+           "BIT-REVERSE-INTEGER"
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
-           "IMPULSE"
-           "IOTA" "LB"
-           "MAKE-VECTOR" "RANDOM-VECTOR"
-           "M+" "M-" "M*"
-           "M="))
+           "LB"))
 
 (defpackage "NAPA-FFT.GEN"
   (:use "CL" "SB-EXT" "NAPA-FFT" "NAPA-FFT.SUPPORT")
