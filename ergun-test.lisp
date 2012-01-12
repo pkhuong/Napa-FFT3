@@ -17,7 +17,7 @@
   (define-mfun m- -)
   (define-mfun m* *))
 
-(defvar *default-abs-tol* 1d-9)
+(defvar *default-abs-tol* 1d-6)
 
 (defun m= (x y &optional (tol *default-abs-tol*))
   (declare (type complex-sample-array x y)
@@ -48,8 +48,8 @@
 (defun check-eqv (a b &optional (name "Test"))
   (multiple-value-bind (ok diff index)
       (m= a b)
-    (assert ok ()
-            "~A failed with delta ~A (~A)~%" name diff index)))
+    (unless ok
+      (error "~A failed with delta ~A (~A)~%" name diff index))))
 
 (defun %forward-test-1 (size repeat function)
   (let ((a (make-vector size))
@@ -88,6 +88,8 @@
     (setf (aref dst 0) last)
     dst))
 
+(defvar *bit-reversed* nil)
+
 (defun %forward-test-3 (size outer-repeat inner-repeat function)
   (let ((a (make-vector size))
         (b (make-vector size))
@@ -117,20 +119,29 @@
         (funcall function diff)
         (m+ b diff b)
         (check-eqv y2 b))
-      (let ((y1 (slow-bit-reverse y1))
-            (y2 (slow-bit-reverse y2))
+      (let ((y1 (if *bit-reversed*
+                    (slow-bit-reverse y1)
+                    y1))
+            (y2 (if *bit-reversed*
+                    (slow-bit-reverse y2)
+                    y2))
             (root (exp (* -2 pi (complex 0 1d0) (/ size))))
             (mul (complex 1d0 0d0)))
-        (declare (type complex-sample root mul))
+        (declare (type complex-sample root mul)
+                 (type complex-sample-array y1 y2))
         (dotimes (i size)
           (setf (aref y1 i) (* mul (aref y1 i))
                 mul         (* mul root)))
-        (check-eqv (slow-bit-reverse y1)
-                   (slow-bit-reverse y2))))))
+        (if *bit-reversed*
+            (check-eqv (slow-bit-reverse y1)
+                       (slow-bit-reverse y2))
+            (check-eqv y1 y2))))))
 
-(defun forward-test (size &optional (prob 1d-5))
+(defun forward-test (size &key (prob 1d-5)
+                            (maker 'make-forward-fun)
+                            ((:bit-reversed *bit-reversed*) t))
   (let ((repeat (ceiling (log (/ 2d0 prob) 2d0)))
-        (fun    (make-forward-fun size)))
+        (fun    (funcall maker size)))
     (assert (plusp repeat))
     (%forward-test-1 size repeat fun)
     (%forward-test-2 size repeat fun)
