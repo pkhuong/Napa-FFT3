@@ -6,6 +6,7 @@
            "%ENSURE-REVERSE" "GET-REVERSE"
            "%ENSURE-FFT" "GET-FFT" "GET-WINDOWED-FFT"
 
+           "*SCRATCH*" "*DOUBLE-SCRATCH*"
            "BIT-REVERSE"
            "FFT" "IFFT"
            "SFFT" "SIFFT"))
