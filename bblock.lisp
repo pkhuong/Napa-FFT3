@@ -252,7 +252,8 @@
                                `(aref twiddle ,k))))
             (@ i))))
 
-(defun scale (i scale window &optional (window-i i))
+(defun scale (i scale window &optional (window-i
+                                        `(+ window-start ,i)))
   (setf (@ i)
         (op (complex-sample)
             `(lambda (x)

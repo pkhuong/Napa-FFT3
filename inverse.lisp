@@ -7,15 +7,12 @@
                  ((= n 1)
                   (when (or (not (eql scale 1d0))
                             window)
-                    (scale start scale window
-                           `(+ window-start ,start))))
+                    (scale start scale window)))
                  ((= n 2)
                   (when (or (not (eql scale 1d0))
                             window)
-                    (scale start      scale window
-                           `(+ window-start ,start))
-                    (scale (1+ start) scale window
-                           `(+ window-start ,(1+ start))))
+                    (scale start      scale window)
+                    (scale (1+ start) scale window))
                   (butterfly start (1+ start)))
                  (t
                   (let* ((n/2    (truncate n 2))
