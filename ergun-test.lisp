@@ -1,37 +1,4 @@
-(defun make-vector (n)
-  (make-array n :element-type 'complex-sample))
-
-(defun random-vector (n &optional (dst (make-vector n)))
-  (declare (type complex-sample-array dst))
-  (unless (= n (length dst))
-    (setf dst (make-array n :element-type 'complex-sample)))
-  (map-into dst (lambda ()
-                  (complex (- (random 2d0) 1d0)
-                           (- (random 2d0) 1d0)))))
-
-(macrolet ((define-mfun (name op)
-             `(defun ,name (x y &optional (dst (make-vector (length x))))
-                (declare (type complex-sample-array x y dst))
-                (map-into dst #',op x y))))
-  (define-mfun m+ +)
-  (define-mfun m- -)
-  (define-mfun m* *))
-
-(defvar *default-abs-tol* 1d-6)
-
-(defun m= (x y &optional (tol *default-abs-tol*))
-  (declare (type complex-sample-array x y)
-           (type double-float tol))
-  (let ((worst 0d0))
-    (declare (type double-float worst))
-    (dotimes (i (length x))
-      (let ((x (aref x i))
-            (y (aref y i)))
-        (let ((delta (abs (- x y))))
-          (if (< delta tol)
-              (setf worst (max worst delta))
-              (return-from m= (values nil delta i))))))
-    (values t worst nil)))
+(in-package "NAPA-FFT.TESTS")
 
 (defun make-forward-fun (size)
   (compile nil `(lambda (vec)
@@ -146,3 +113,13 @@
     (%forward-test-1 size repeat fun)
     (%forward-test-2 size repeat fun)
     (%forward-test-3 size repeat (+ repeat 2) fun)))
+
+(defun run-forward-tests (max-size &optional fancy (*fancy-in-order* t))
+  (loop for i upto max-size
+        do (forward-test (ash 1 i)
+                         :maker (if fancy
+                                    (lambda (n)
+                                      (get-fft n :in-order *fancy-in-order*))
+                                    'make-forward-fun)
+                         :bit-reversed (not (and fancy
+                                                 *fancy-in-order*)))))

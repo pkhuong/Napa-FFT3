@@ -1,3 +1,5 @@
+(in-package "NAPA-FFT.GEN")
+
 (defvar *fwd-base-case* 32)
 
 (defun %gen-flat-dif (n scale window)
@@ -53,7 +55,8 @@
   (let ((defs '())
         (last n))
     (labels ((name (n)
-               (intern (format nil "~A/~A" 'dif n)))
+               (intern (format nil "~A/~A" 'dif n)
+                       "NAPA-FFT.GEN"))
              (gen (n &aux (name (name n)))
                (when (member name defs :key #'first)
                  (return-from gen))

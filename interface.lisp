@@ -1,3 +1,5 @@
+(in-package "NAPA-FFT.IMPL")
+
 (deftype direction ()
   '(member 1 -1 :fwd :inv :bwd))
 
@@ -91,11 +93,15 @@
 
 (defvar *bit-reverse-lock* (sb-thread:make-mutex))
 (defvar *bit-reverses* (make-array 33 :initial-element nil))
+(defvar *double-bit-reverses* (make-array 33 :initial-element nil))
 
-(defun %ensure-reverse (n)
+(defun %ensure-reverse (n &optional (eltype 'complex-sample))
+  (assert (member eltype '(complex-sample double-float)))
   (assert (= 1 (logcount n)))
   (let ((len (lb n))
-        (vec *bit-reverses*))
+        (vec (ecase eltype
+               (complex-sample *bit-reverses*)
+               (double-float   *double-bit-reverses*))))
     (block nil
       (flet ((check ()
                (let ((id (aref vec len)))
@@ -108,18 +114,18 @@
                 (compile
                  nil
                  `(lambda (vec start tmp startt)
-                    (declare (type complex-sample-array
+                    (declare (type (simple-array ,eltype 1)
                                    vec tmp)
                              (type index start startt)
                              (ignorable vec start
                                         tmp startt)
                              (optimize speed (safety 0)))
-                    ,(gen-bit-reversal n)
+                    ,(gen-bit-reversal n eltype)
                     vec))))))))
 
-(defun get-reversal (n)
-  (let ((tmp (make-array n :element-type 'complex-sample))
-        (fun (%ensure-reverse n)))
+(defun get-reverse (n &optional (eltype 'complex-sample))
+  (let ((tmp (make-array n :element-type eltype))
+        (fun (%ensure-reverse n eltype)))
     (lambda (vec)
       (funcall fun vec 0 tmp 0))))
 

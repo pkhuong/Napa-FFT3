@@ -1,3 +1,5 @@
+(in-package "NAPA-FFT.TESTS")
+
 (defun delta (x y)
   (declare (type complex-sample-array x y))
   (let ((max-diff 0d0))
@@ -153,10 +155,17 @@
 
 (defun get-fancy-windowed-inv (n window)
   (if window
-      (get-windowed-fft n 'float
-                        :forward nil
-                        :scale :sqrt
-                        :in-order *fancy-in-order*)
+      (let ((fun (get-windowed-fft n 'float
+                                   :forward nil
+                                   :scale :sqrt
+                                   :in-order *fancy-in-order*))
+            (rev (get-reverse n 'double-float)))
+        (if *fancy-in-order*
+            (lambda (vec window)
+              (funcall rev window)
+              (funcall fun vec window))
+            fun))
+      
       (let ((fun (get-fancy-inv n (/ (sqrt (float n 1d0))))))
         (lambda (vec window)
           window
@@ -177,7 +186,7 @@
     (funcall fwd copy window)
     (when window-inv
       (apply-window-inv copy window))
-    (funcall inv copy window)
+    (funcall inv copy (copy-seq window))
     (delta iota copy)))
 
 (defun run-windows (max

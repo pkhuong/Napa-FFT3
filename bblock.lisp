@@ -1,3 +1,5 @@
+(in-package "NAPA-FFT.GEN")
+
 ;;; Basic block compiler.
 
 (defstruct (vval
@@ -234,32 +236,3 @@
             for i upfrom 0
             do (insert-write val i))
       new)))
-
-(defun butterfly (i j)
-  (setf (values (@ i) (@ j))
-        (op (complex-sample complex-sample)
-            `(lambda (x y)
-               (values (+ x y)
-                       (- x y)))
-            (@ i) (@ j))))
-
-(defun rotate (i k root)
-  (setf (@ i)
-        (op (complex-sample)
-            `(lambda (x)
-               ,(mul-root 'x root
-                          (and k
-                               `(aref twiddle ,k))))
-            (@ i))))
-
-(defun scale (i scale window &optional (window-i
-                                        `(+ window-start ,i)))
-  (setf (@ i)
-        (op (complex-sample)
-            `(lambda (x)
-               (%window (%scale x ,scale)
-                        ,window
-                        ,(if window
-                             window-i
-                             0)))
-            (@ i))))

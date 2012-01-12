@@ -1,12 +1,4 @@
-(defun make-bit-reversal-table (n &optional (type 'fixnum))
-  (assert (= 1 (logcount n)))
-  (let ((vec (make-array n :element-type type))
-        (width (lb n)))
-    (dotimes (i n vec)
-      (setf (aref vec i)
-            (bit-reverse-integer i width)))))
-
-(defvar *bit-reversed-octets* (make-bit-reversal-table 256 '(unsigned-byte 8)))
+(in-package "NAPA-FFT.GEN")
 
 (defun emit-small-bit-reverse-swap (n &aux
                                         (width (lb n)))
@@ -69,7 +61,7 @@
 (defvar *max-small-bit-reverse* 256)
 (defvar *max-reversal-radix* 8)
 
-(defun gen-bit-reversal (n)
+(defun gen-bit-reversal (n eltype)
   (assert (= 1 (logcount n)))
   (labels ((rec (n vec tmp)
              (cond ((> n *max-small-bit-reverse*)
@@ -82,7 +74,7 @@
                                (src ,vec)
                                (startd startt)
                                (starts start))
-                           (declare (type complex-sample-array dst src)
+                           (declare (type (simple-array ,eltype 1) dst src)
                                     (type index starts startd))
                            ,(emit-radix-n-reversal radix n))
                          (for (,radix
@@ -101,7 +93,7 @@
                            (dst ,tmp)
                            (starts start)
                            (startd startt))
-                       (declare (type complex-sample-array
+                       (declare (type (simple-array ,eltype 1)
                                       src dst)
                                 (type index starts startd))
                        ,(emit-small-bit-reverse-copy n))))))
