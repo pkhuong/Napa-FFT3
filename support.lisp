@@ -175,6 +175,7 @@
                 (not (position-if-not #'constantp bindings :key #'third)))
            (emit-unrolled-for count bindings body))
           ((and (integerp count)
+                (> blocking 1)
                 (zerop (mod count blocking))
                 (not (find-if-not #'constantp bindings :key #'third)))
            (let ((gensyms (mapcar (lambda (binding)
