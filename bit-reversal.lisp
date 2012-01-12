@@ -66,7 +66,7 @@
                                            div)))
                           (aref src (+ src-i ,i)))))))
 
-(defvar *max-small-bit-reverse* 1024)
+(defvar *max-small-bit-reverse* 256)
 (defvar *max-reversal-radix* 8)
 
 (defun gen-bit-reversal (n)
