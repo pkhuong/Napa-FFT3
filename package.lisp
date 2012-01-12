@@ -8,8 +8,7 @@
 
            "*SCRATCH*" "*DOUBLE-SCRATCH*"
            "BIT-REVERSE"
-           "FFT" "IFFT"
-           "SFFT" "SIFFT"))
+           "FFT" "IFFT"))
 
 (defpackage "NAPA-FFT.SUPPORT"
   (:use "CL" "SB-EXT" "NAPA-FFT")

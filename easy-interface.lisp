@@ -50,41 +50,7 @@
     (complex-sample-array 'complex-sample)
     ((simple-array double-float 1) 'double-float)))
 
-(defun fft (vec &key dst (in-order t) (scale nil) (window nil))
-  (declare (type complex-sample-array vec)
-           (type (or null complex-sample-array) dst))
-  (let* ((dst (copy-or-replace vec dst))
-         (n   (length vec)))
-    (if window
-        (funcall (get-windowed-fft n (get-window-type window)
-                                   :scale scale
-                                   :in-order nil)
-                 dst window)
-        (funcall (get-fft n :scale scale :in-order nil)
-                 dst))
-    (if in-order
-        (bit-reverse dst dst)
-        dst)))
-
-(defun ifft (vec &key dst (in-order t) (scale t) (window nil))
-  (declare (type complex-sample-array vec)
-           (type (or null complex-sample-array) dst))
-  (let* ((dst (copy-or-replace vec dst))
-         (n   (length vec)))
-    (when in-order
-      (bit-reverse dst dst))
-    (if window
-        (funcall (get-windowed-fft n (get-window-type window)
-                                   :forward nil
-                                   :scale scale
-                                   :in-order nil)
-                 dst window)
-        (funcall (get-fft n
-                          :forward nil
-                          :scale scale
-                          :in-order nil)
-                 dst))))
-
+(declaim (inline complex-samplify))
 (defun complex-samplify (vec)
   (etypecase vec
     (complex-sample-array vec)
@@ -101,14 +67,38 @@
                  (coerce x 'complex-sample))
                vec))))
 
-(defun sfft (vec &key (in-order t) (scale nil) (window nil))
-  (fft (complex-samplify vec)
-       :in-order in-order
-       :scale scale
-       :window window))
+(defun fft (vec &key dst (in-order t) (scale nil) (window nil))
+  (declare (type (or null complex-sample-array) dst))
+  (let* ((vec (complex-samplify vec))
+         (dst (copy-or-replace vec dst))
+         (n   (length vec)))
+    (if window
+        (funcall (get-windowed-fft n (get-window-type window)
+                                   :scale scale
+                                   :in-order nil)
+                 dst window)
+        (funcall (get-fft n :scale scale :in-order nil)
+                 dst))
+    (if in-order
+        (bit-reverse dst dst)
+        dst)))
 
-(defun sifft (vec &key (in-order t) (scale t) (window nil))
-  (ifft (complex-samplify vec)
-        :in-order in-order
-        :scale scale
-        :window window))
+(defun ifft (vec &key dst (in-order t) (scale t) (window nil))
+  (declare (type (or null complex-sample-array) dst))
+  (let* ((vec (complex-samplify vec))
+         (dst (copy-or-replace vec dst))
+         (n   (length vec)))
+    (when in-order
+      (bit-reverse dst dst))
+    (if window
+        (funcall (get-windowed-fft n (get-window-type window)
+                                   :forward nil
+                                   :scale scale
+                                   :in-order nil)
+                 dst window)
+        (funcall (get-fft n
+                          :forward nil
+                          :scale scale
+                          :in-order nil)
+                 dst))))
+
