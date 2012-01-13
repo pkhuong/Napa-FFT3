@@ -1,6 +1,7 @@
 (defpackage "NAPA-FFT"
   (:use)
   (:export "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
+           "REAL-SAMPLE" "REAL-SAMPLE-ARRAY"
            "DIRECTION" "SCALING" "WINDOWING"
            "%ENSURE-TWIDDLES"
            "%ENSURE-REVERSE" "GET-REVERSE"
