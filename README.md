@@ -180,7 +180,7 @@ Example:
                         :scale :sqrt)
     #(#C(0.0d0 0.0d0) #C(1.0d0 0.0d0) #C(2.0d0 0.0d0) #C(3.0d0 0.0d0))
     
-    ;; The :window argument leads to easy convolutions; simply make
+    ;; The :window argument performs convolutions; simply make
     ;; sure that :in-order is nil.
     CL-USER> (napa-fft:ifft (napa-fft:fft '(0 1 2 3))
                             :window (napa-fft:fft '(0 1/2 0 0)
@@ -208,6 +208,7 @@ but it may still be useful to convert an in-order vector to
 out-of-order or vice-versa.
 
 Example:
+
     CL-USER> (napa-fft:bit-reverse (coerce '(0d0 1d0 2d0 3d0)
                                            'napa-fft:real-sample-array))
     #(0.0d0 2.0d0 1.0d0 3.0d0)
