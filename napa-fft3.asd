@@ -1,4 +1,4 @@
-(asdf:defsystem "napa-fft2"
+(asdf:defsystem "napa-fft3"
   :version "0.0.1"
   :licence "BSD"
   :description "Fast Fourier Transforms via generated split-radix"

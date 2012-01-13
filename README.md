@@ -1,16 +1,17 @@
-Napa-FFT2: Overview
+Napa-FFT3: Overview
 ===================
 
-Napa-FFT2 is a complete rewrite of Napa-FFT.  The goal is still the
-same: to provide, via a mixture of cache-friendly algorithms and code
-generation, FFT routines in Common Lisp that offer performance
-comparable to the state of the art.  In that regard, it is a success:
-depending on how it's used, Napa-FFT2 is, at most, around three times
-as slow as FFTW on small or medium inputs, and can be faster than FFTW
-for large inputs.  The complete picture is more complicated than this;
-see the _Performance_ section for details.
+Napa-FFT3 is a complete rewrite of Napa-FFT (version 2 is an aborted
+experiment).  The goal is still the same: to provide, via a mixture of
+cache-friendly algorithms and code generation, FFT routines in Common
+Lisp that offer performance comparable to the state of the art.  In
+that regard, it is a success: depending on how it's used, Napa-FFT3
+is, at most, around three times as slow as FFTW on small or medium
+inputs, and can be faster than FFTW for large inputs.  The complete
+picture is more complicated than this; see the _Performance_ section
+for details.
 
-The goal of Napa-FFT2 isn't only to provide Discrete Fourier Transform
+The goal of Napa-FFT3 isn't only to provide Discrete Fourier Transform
 (DFT) routines, but also (rather) to provide buildings blocks to
 express common operations that involve DFTs: filtering, convolutions,
 etc.  This is what enables Napa-FFT to achieve such high performance
@@ -18,14 +19,14 @@ without optimizing at the assembly level.  The _Easy Interface_
 section should suffice for most developers; the _Low-level Interface_
 is described in another section, and may be of interest to some.
 
-Napa-FFT2 also expressly supports FFTs on real data and inverse FFTs
+Napa-FFT3 also expressly supports FFTs on real data and inverse FFTs
 back to real data.  The _Real Interface_ section describes the
 facility, and is used in conjunction with the _Easy Interface_.
 
 Finally, see the _Installation_ section for installation instructions,
 and the _Implementation_ section for all the gory details.
 
-Note that Napa-FFT2 currently only supports power-of-two-sized inputs;
+Note that Napa-FFT3 currently only supports power-of-two-sized inputs;
 even when/if it will gain code for arbitrary sizes, power-of-twos will
 most likely be much more efficient, both in terms of runtime and space
 usage.
@@ -44,13 +45,13 @@ To recapitulate:
 Installation
 ------------
 
-Napa-FFT2 is a regular ASDF system defined in `napa-fft2.asd`.  If
-Quicklisp is installed, it suffices to copy the Napa-FFT2 directory
+Napa-FFT3 is a regular ASDF system defined in `napa-fft3.asd`.  If
+Quicklisp is installed, it suffices to copy the Napa-FFT3 directory
 under `~/quicklisp/local-projects`.
 
-Once registered with ASDF, Napa-FFT2 can be loaded by executing
-`(asdf:oos 'asdf:load-op "napa-fft2")`, or, with Quicklisp, 
-`(ql:quickload "napa-fft2")`.
+Once registered with ASDF, Napa-FFT3 can be loaded by executing
+`(asdf:oos 'asdf:load-op "napa-fft3")`, or, with Quicklisp, 
+`(ql:quickload "napa-fft3")`.
 
 Easy Interface
 --------------
