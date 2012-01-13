@@ -61,49 +61,49 @@
 (defun power-of-two-p (x)
   (= 1 (logcount x)))
 
-(declaim (ftype (function (sequence) (values complex-sample-array &optional))
+(declaim (ftype (function (sequence &optional size) (values complex-sample-array &optional))
                 complex-samplify))
-(defun complex-samplify (vec)
+(defun complex-samplify (vec &optional (size (length vec)))
   (etypecase vec
     (complex-sample-array vec)
     ((simple-array (complex single-float) 1)
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'complex-sample)
                (lambda (x)
                  (coerce x 'complex-sample))
                vec))
     (real-sample-array
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'complex-sample)
                (lambda (x)
                  (coerce x 'complex-sample))
                vec))
     ((simple-array single-float 1)
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'complex-sample)
                (lambda (x)
                  (coerce x 'complex-sample))
                vec))
     (sequence
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'complex-sample)
                (lambda (x)
                  (coerce x 'complex-sample))
                vec))))
 
-(declaim (ftype (function (sequence) (values real-sample-array &optional))
+(declaim (ftype (function (sequence &optional size) (values real-sample-array &optional))
                 real-samplify))
-(defun real-samplify (vec)
+(defun real-samplify (vec &optional (size (length vec)))
   (etypecase vec
     (real-sample-array vec)
     ((simple-array single-float 1)
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'real-sample)
                (lambda (x)
                  (coerce x 'real-sample))
                vec))
     (sequence
-     (map-into (make-array (length vec)
+     (map-into (make-array size
                            :element-type 'real-sample)
                (lambda (x)
                  (coerce x 'real-sample))
