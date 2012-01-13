@@ -58,7 +58,7 @@
                  ,@(and windowing
                         `((type (simple-array ,windowing 1)
                                 window)))
-                 (optimize speed (safety 0)))
+                 ,*optimization-policy*)
         ,(funcall
           (ecase direction
             (1 'gen-dif)
@@ -120,7 +120,7 @@
                              (type index start startt)
                              (ignorable vec start
                                         tmp startt)
-                             (optimize speed (safety 0)))
+                             ,*optimization-policy*)
                     ,(gen-bit-reversal n eltype)
                     vec))))))))
 

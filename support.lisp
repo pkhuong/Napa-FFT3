@@ -25,6 +25,8 @@
 (deftype real-sample-array (&optional size)
   `(simple-array real-sample (,size)))
 
+(defvar *optimization-policy* '(optimize speed (safety 0)))
+
 (defun bit-reverse-integer (x width)
   (let ((acc 0))
     (loop repeat width

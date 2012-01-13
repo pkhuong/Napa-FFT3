@@ -33,7 +33,10 @@
            "SIZE" "HALF-SIZE"
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
            "REAL-SAMPLE" "REAL-SAMPLE-ARRAY"
+           "*OPTIMIZATION-POLICY*"
+
            "BIT-REVERSE-INTEGER"
+           
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
            "LB" "POWER-OF-TWO-P"
            "COMPLEX-SAMPLIFY"

@@ -100,7 +100,7 @@
       (declare (type complex-sample-array twiddle)
                (type complex-sample-array dst))
       (assert (>= (length dst) size))
-      (locally (declare (optimize (safety 0)))
+      (locally (declare #.*optimization-policy*)
         (with-scale (scale)
           (loop for i of-type index below n by 2
                 for j of-type index from 0
@@ -149,7 +149,7 @@
       (declare (type complex-sample-array twiddle)
                (type real-sample-array dst))
       (assert (>= (length dst) size))
-      (locally (declare (optimize (safety 0)))
+      (locally (declare #.*optimization-policy*)
         (loop for i of-type index below n/2
               for j of-type index from n/2
               do (let* ((x (aref vec i))
