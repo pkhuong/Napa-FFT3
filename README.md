@@ -62,11 +62,11 @@ The core of the "easy" interface consists of:
  * `NAPA-FFT:FFT`: forward DFT
  * `NAPA-FFT:IFFT`: inverse DFT
  * `NAPA-FFT:BIT-REVERSE`: bit-reversal routine
- * `NAPA-FFT:WINDOWED-FFT`: windows forward DFT
+ * `NAPA-FFT:WINDOWED-FFT`: windowed forward DFT
 
 ### FFT
 
-Syntax: `fft vec &key dst size in-order scale window => object`.
+Syntax: `fft vec &key dst size in-order scale window => vector`.
 
 Arguments and Values:
 
@@ -83,7 +83,7 @@ Arguments and Values:
  * _window_: simple array of double or complex doubles by which the
    input is multiplied point-wise; no multiplication if nil
    (default).
- * _object_: a simple array of complex doubles. _dst_ if not nil,
+ * _vector_: a simple array of complex doubles. _dst_ if not nil,
    otherwise a newly-allocated array.
    
 `FFT` computes the DFT of the first _size_ values in _vec_.
@@ -129,11 +129,11 @@ Example:
 
 ### IFFT
 
-Syntax: `fft vec &key dst size in-order scale window => object`.
+Syntax: `ifft vec &key dst size in-order scale window => vector`.
 
 Arguments and Values:
 
- * _vec_: sequence of samples.
+ * _vec_: sequence of Fourier coefficients.
  * _dst_: nil (default) or a simple vector of complex samples
    (destructively reused).
  * _size_: size of the transform to perform (must be a power of
@@ -145,10 +145,11 @@ Arguments and Values:
  * _window_: simple array of real or complex sample by which the
    out-of-order input samples are multiplied elementwise.  If nil
    (default), no multiplication is performed.
- * _object_: a simple array of complex doubles. _dst_ if not nil,
+ * _vector_: a simple array of complex doubles. _dst_ if not nil,
    otherwise a newly-allocated array.
    
-`IFFT` computes the inverse DFT of the first _size_ values in _vec_.
+`IFFT` computes the inverse DFT of the first _size_ Fourier
+coefficients in _vec_.
 
 First, _vec_ is converted to a simple array of complex samples if
 necessary.  The result is stored in _dst_, or a fresh array of complex
@@ -192,7 +193,7 @@ Example:
 
 ### BIT-REVERSE
 
-Syntax: `bit-reverse vec &optional dst size => object`.
+Syntax: `bit-reverse vec &optional dst size => vector`.
 
 Arguments and values:
 
@@ -200,7 +201,7 @@ Arguments and values:
  * _dst_: nil, or the destination array of the same type as _vec_.
  * _size_: number of elements to reorder. If nil, defaults to the
    size of _vec_. Must be a power of two.
- * _object_: bit-reversed permutation of _vec_.
+ * _vector_: bit-reversed permutation of _vec_.
  
 `BIT-REVERSE` permutes the first _size_ elements in _vec_ to
 bit-reversed indices, storing the result in _dst_ if provided.  _vec_
@@ -230,13 +231,76 @@ Real Interface
 The real interface offers three functions specialized to operate on
 real (not complex) data:
 
- * `NAPA-FFT:RFFT` performs in-order real-input FFT.
- * `NAPA-FFT:RIFFT` performs in-order real-output inverse FFT.
+ * `NAPA-FFT:RFFT` performs in-order real-input FFTs.
+ * `NAPA-FFT:RIFFT` performs in-order real-output inverse FFTs.
  * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input FFTs.
 
 There are convenient because the result is a vector of real values,
 but also offer strong performance improvements (almost halving
-computation times) for in-order, out-of-place, transforms.
+computation times) for in-order, out-of-place, transforms, at the
+expense of a little precision.
 
 ### RFFT
+
+Syntax: `rfft vec &key dst size scale => vector`
+
+Arguments and values:
+
+ * _vec_: sequence of real samples.
+ * _dst_: nil, or a simple vector of complex doubles (destructively
+   reused).
+ * _size_: size of the transform to perform. Defaults to `(length vec)`.
+   Must be a power of two.
+ * _scale_: how the result should be scaled: not at all (default,
+   nil), by _1/sqrt(size)_ (:sqrt or sqrt), or by _1/n_ (t,
+   or :inv).
+ * _vector_: a simple array of complex doubles. _dst_ if not nil,
+   otherwise a newly-allocated array.
+
+`RFFT` computes the in-order DFT of the first _size_ samples in _vec_.
+
+_vec_ is converted, if necessary, to a simple array of doubles.  Its
+DFT is then re-expressed as a half-size DFT of complex samples, and
+the result is written in _dst_.
+
+Example:
+
+    ;; this should always get the same value
+    CL-USER> (napa-fft:rfft '(0 1 2 3))
+    #(#C(6.0d0 0.0d0) #C(-2.0d0 2.0d0) #C(-2.0d0 0.0d0)
+      #C(-1.9999999999999998d0 -2.0d0))
+
+
+### RIFFT
+
+Syntax: `rifft vec &key dst size scale => vector`
+
+Arguments and values:
+ * _vec_: sequence of complex Fourier coefficients. Destroyed.
+ * _dst_: nil, or a simple vector of doubles. Destructively reused.
+ * _size_: size of the inverse transform to perform. Defaults to
+   `(length vec)`.  Must be a power of two.
+ * _scale_: how the result should be scaled: not at all (nil), but
+   _1/sqrt(size)_ (:sqrt or sqrt) or by _1/n_ (default, t or :inv).
+ * _vector_: a simple array of doubles. _dst_ if not nil, otherwise a
+   newly-allocated array.
+
+`RIFFT` computes the in-order inverse DFT of the first _size_ Fourier
+coefficients in _vec_.
+
+_vec_ is converted, if necessary, to a simple array of complex
+doubles.  Its inverse DFT is then re-expressed, destructively as a
+half-size DFT of complex doubles.
+
+Example:
+
+    CL-USER> (napa-fft:rifft (napa-fft:rfft '(0 1 2 3)))
+    #(0.0d0 1.0d0 2.0d0 3.0d0)
+
+### WINDOWED-RFFT
+
+Same.
+
+Examples
+--------
 
