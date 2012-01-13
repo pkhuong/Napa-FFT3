@@ -50,11 +50,16 @@
     (complex-sample-array 'complex-sample)
     ((simple-array double-float 1) 'double-float)))
 
-(defun fft (vec &key dst (in-order t) (scale nil) (window nil))
+(defun fft (vec &key dst
+                  (size (length vec))
+                  (in-order t) (scale nil) (window nil))
   (declare (type (or null complex-sample-array) dst))
+  (assert (power-of-two-p size))
+  (assert (>= (length vec) size))
   (let* ((vec (complex-samplify vec))
          (dst (copy-or-replace vec dst))
-         (n   (length vec)))
+         (n   size))
+    (assert (>= (length dst) size))
     (if window
         (funcall (get-windowed-fft n (get-window-type window)
                                    :scale scale
@@ -66,11 +71,16 @@
         (bit-reverse dst dst)
         dst)))
 
-(defun ifft (vec &key dst (in-order t) (scale t) (window nil))
+(defun ifft (vec &key dst
+                   (size (length vec))
+                   (in-order t) (scale t) (window nil))
   (declare (type (or null complex-sample-array) dst))
+  (assert (power-of-two-p size))
+  (assert (>= (length vec) size))
   (let* ((vec (complex-samplify vec))
          (dst (copy-or-replace vec dst))
-         (n   (length vec)))
+         (n   size))
+    (assert (>= (length dst) size))
     (when in-order
       (bit-reverse dst dst))
     (if window

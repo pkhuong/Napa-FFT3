@@ -21,7 +21,11 @@
            "EXTRACT-CENTERED-WINDOW-INTO"
            "EXTRACT-CENTERED-WINDOW"
 
-           "WINDOWED-FFT"))
+           "WINDOWED-FFT"
+
+           "*RFFT-TWIDDLE*"
+           "RFFT" "RIFFT"
+           "WINDOWED-RFFT"))
 
 (defpackage "NAPA-FFT.SUPPORT"
   (:use "CL" "SB-EXT" "NAPA-FFT")
@@ -30,7 +34,7 @@
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
            "BIT-REVERSE-INTEGER"
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
-           "LB" "POWER-OF-TWO-P"))
+           "LB" "POWER-OF-TWO-P" "COMPLEX-SAMPLIFY"))
 
 (defpackage "NAPA-FFT.GEN"
   (:use "CL" "SB-EXT" "NAPA-FFT" "NAPA-FFT.SUPPORT")
