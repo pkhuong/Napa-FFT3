@@ -23,7 +23,7 @@
 
            "WINDOWED-FFT"
 
-           "*RFFT-TWIDDLE*"
+           "*RFFT-TWIDDLES*" "*RIFFT-TWIDDLES*"
            "RFFT" "RIFFT"
            "WINDOWED-RFFT"))
 
@@ -34,7 +34,8 @@
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
            "BIT-REVERSE-INTEGER"
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
-           "LB" "POWER-OF-TWO-P" "COMPLEX-SAMPLIFY"))
+           "LB" "POWER-OF-TWO-P"
+           "COMPLEX-SAMPLIFY"))
 
 (defpackage "NAPA-FFT.GEN"
   (:use "CL" "SB-EXT" "NAPA-FFT" "NAPA-FFT.SUPPORT")

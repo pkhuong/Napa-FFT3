@@ -16,6 +16,7 @@
                (:file "interface")
                (:file "easy-interface")
                (:file "windowing")
+               (:file "real")
 
                (:file "test-support")
                (:file "tests")
