@@ -30,7 +30,7 @@
 (defconstant +twiddle-offset+ -1)
 
 (defun make-twiddle (n &optional (dir 1d0))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (check-type dir (member 1d0 -1d0))
   (let ((vec (make-array n :element-type 'complex-sample
                            :initial-element (complex 0d0 0d0))))
@@ -46,5 +46,9 @@
                          (aref vec (+ start 1 (* 2 i))) t2)))))
     vec))
 
+(declaim (inline power-of-two-p lb))
 (defun lb (n)
   (integer-length (1- n)))
+
+(defun power-of-two-p (x)
+  (= 1 (logcount x)))

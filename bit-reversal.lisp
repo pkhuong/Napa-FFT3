@@ -2,7 +2,7 @@
 
 (defun emit-small-bit-reverse-swap (n &aux
                                         (width (lb n)))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   `(progn
      ,@(loop
          for i below n
@@ -20,7 +20,7 @@
 
 (defun emit-small-bit-reverse (n &aux
                                    (width (lb n)))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   `(progn
      ,@(loop
          for i below n
@@ -32,7 +32,7 @@
 
 (defun emit-small-bit-reverse-copy (n &aux
                                         (width (lb n)))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   `(progn
      ,@(loop
          for i below n
@@ -42,8 +42,8 @@
                 (aref src (+ starts ,rev))))))
 
 (defun emit-radix-n-reversal (radix n)
-  (assert (= 1 (logcount radix)))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p radix))
+  (assert (power-of-two-p n))
   (assert (>= n radix))
   (let ((div (truncate n radix))
         (width (lb radix)))
@@ -62,7 +62,7 @@
 (defvar *max-reversal-radix* 8)
 
 (defun gen-bit-reversal (n eltype)
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (labels ((rec (n vec tmp)
              (cond ((> n *max-small-bit-reverse*)
                     (let* ((radix (min *max-reversal-radix*

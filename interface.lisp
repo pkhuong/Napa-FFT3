@@ -34,7 +34,7 @@
   (declare (type direction direction)
            (type scaling   scaling)
            (type windowing windowing))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (let ((direction (ecase direction
                      ((1 :fwd) 1)
                      ((-1 :inv :bwd) -1)))
@@ -75,7 +75,7 @@
                            (make-array 33 :initial-element nil))))
 
 (defun %ensure-fft (direction scaling windowing n)
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (let* ((index (find-index direction scaling windowing))
          (len   (lb n))
          (vec   (aref *ffts* index)))
@@ -98,7 +98,7 @@
 
 (defun %ensure-reverse (n &optional (eltype 'complex-sample))
   (assert (member eltype '(complex-sample double-float)))
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (let ((len (lb n))
         (vec (ecase eltype
                (complex-sample *bit-reverses*)
@@ -135,7 +135,7 @@
 (defvar *inverse-twiddle* nil)
 
 (defun %ensure-twiddles (n forwardp)
-  (assert (= 1 (logcount n)))
+  (assert (power-of-two-p n))
   (block nil
     (flet ((check ()
              (let ((vec (if forwardp

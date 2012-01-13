@@ -8,7 +8,20 @@
 
            "*SCRATCH*" "*DOUBLE-SCRATCH*"
            "BIT-REVERSE"
-           "FFT" "IFFT"))
+           "FFT" "IFFT"
+
+           "RECTANGULAR" "HANN" "BLACKMAN*"
+           "BLACKMAN" "TRIANGLE" "BARTLETT"
+           "GAUSS*" "GAUSSIAN" "GAUSSIAN*BARTLETT^X"
+           "COSINE-SERIES" "BLACKMAN-HARRIS"
+
+           "WINDOW-VECTOR"
+           "CLIP-IN-WINDOW"
+           "EXTRACT-WINDOW-INTO" "EXTRACT-WINDOW"
+           "EXTRACT-CENTERED-WINDOW-INTO"
+           "EXTRACT-CENTERED-WINDOW"
+
+           "WINDOWED-FFT"))
 
 (defpackage "NAPA-FFT.SUPPORT"
   (:use "CL" "SB-EXT" "NAPA-FFT")
@@ -17,7 +30,7 @@
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
            "BIT-REVERSE-INTEGER"
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
-           "LB"))
+           "LB" "POWER-OF-TWO-P"))
 
 (defpackage "NAPA-FFT.GEN"
   (:use "CL" "SB-EXT" "NAPA-FFT" "NAPA-FFT.SUPPORT")
