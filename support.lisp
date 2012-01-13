@@ -53,7 +53,7 @@
 (defun power-of-two-p (x)
   (= 1 (logcount x)))
 
-(declaim (ftype (function (t) (values complex-sample-array &optional))
+(declaim (ftype (function (sequence) (values complex-sample-array &optional))
                 complex-samplify))
 (defun complex-samplify (vec)
   (etypecase vec
@@ -70,7 +70,7 @@
                (lambda (x)
                  (coerce x 'complex-sample))
                vec))
-    (t
+    (sequence
      (map-into (make-array (length vec)
                            :element-type 'complex-sample)
                (lambda (x)
