@@ -57,18 +57,19 @@
     (real-sample-array    'real-sample)))
 
 (defun fft (vec &key dst
-                  (size (length vec))
+                  size
                   (in-order t) (scale nil) (window nil))
   (declare (type (or null complex-sample-array) dst))
-  (assert (power-of-two-p size))
-  (assert (>= (length vec) size))
   (let* ((old vec)
          (vec (complex-samplify vec))
          (dst (if (or (eql old vec) dst)
                   (copy-or-replace vec dst)
                   vec))
-         (n   size))
-    (assert (>= (length dst) size))
+         (n   (or size (length vec))))
+    (declare (type size n))
+    (assert (power-of-two-p n))
+    (assert (>= (length vec) n))
+    (assert (>= (length dst) n))
     (if window
         (funcall (get-windowed-fft n (get-window-type window)
                                    :scale scale
@@ -81,18 +82,19 @@
         dst)))
 
 (defun ifft (vec &key dst
-                   (size (length vec))
+                   size
                    (in-order t) (scale t) (window nil))
   (declare (type (or null complex-sample-array) dst))
-  (assert (power-of-two-p size))
-  (assert (>= (length vec) size))
   (let* ((old  vec)
          (vec (complex-samplify vec))
          (dst (if (or (eql old vec) dst)
                   (copy-or-replace vec dst)
                   vec))
-         (n   size))
-    (assert (>= (length dst) size))
+         (n   (or size (length vec))))
+    (declare (type size n))
+    (assert (power-of-two-p n))
+    (assert (>= (length vec) n))
+    (assert (>= (length dst) n))
     (when in-order
       (bit-reverse dst dst n))
     (if window
