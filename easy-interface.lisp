@@ -50,23 +50,6 @@
     (complex-sample-array 'complex-sample)
     ((simple-array double-float 1) 'double-float)))
 
-(declaim (inline complex-samplify))
-(defun complex-samplify (vec)
-  (etypecase vec
-    (complex-sample-array vec)
-    ((simple-array double-float 1)
-     (map-into (make-array (length vec)
-                           :element-type 'complex-sample)
-               (lambda (x)
-                 (coerce x 'complex-sample))
-               vec))
-    (t
-     (map-into (make-array (length vec)
-                           :element-type 'complex-sample)
-               (lambda (x)
-                 (coerce x 'complex-sample))
-               vec))))
-
 (defun fft (vec &key dst (in-order t) (scale nil) (window nil))
   (declare (type (or null complex-sample-array) dst))
   (let* ((vec (complex-samplify vec))
