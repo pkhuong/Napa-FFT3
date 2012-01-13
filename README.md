@@ -265,7 +265,8 @@ the result is written in _dst_.
 
 Example:
 
-    ;; this should always get the same value
+    ;; rfft should always yield the same result as fft (modulo
+    ;; rounding)
     CL-USER> (napa-fft:rfft '(0 1 2 3))
     #(#C(6.0d0 0.0d0) #C(-2.0d0 2.0d0) #C(-2.0d0 0.0d0)
       #C(-1.9999999999999998d0 -2.0d0))
@@ -362,9 +363,9 @@ _(440/44100)*65536_ th bin.
                                              :scale nil))
     "~/napa-fft3/example/foo.s32"
 
-    $ play -r44100 a440.s32 # play is a sox command; play a file os
-                           # signed 32 bit samples at 44100 Hz.
-                           # Should sound like an A440!
+    $ play -r44100 a440.s32 # play is a sox command; play a file of
+                            # signed 32 bit samples at 44100 Hz.
+                            # Should sound like an A440!
 
 ### Generate a chord
 
