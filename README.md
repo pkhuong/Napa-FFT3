@@ -32,6 +32,7 @@ most likely be much more efficient, both in terms of runtime and space
 usage.
 
 To recapitulate:
+
  * Installation: installation instructions;
  * Easy Interface: convenience functions;
  * Real Interface: convenience functions for real-only input or
@@ -68,6 +69,7 @@ The core of the "easy" interface consists of:
 Syntax: `fft vec &key dst size in-order scale window => object`.
 
 Arguments and Values:
+
  * `vec`: sequence of complex samples (`(complex double-float)` values).
  * `dst`: `nil` (default) or a simple vector of complex samples
    (destructively reused).
@@ -129,6 +131,7 @@ Example:
 Syntax: `fft vec &key dst size in-order scale window => object`.
 
 Arguments and Values:
+
  * `vec`: sequence of complex samples (`(complex double-float)` values).
  * `dst`: `nil` (default) or a simple vector of complex samples
    (destructively reused).
@@ -189,6 +192,7 @@ Example:
 Syntax: `bit-reverse vec &optional dst size => object`.
 
 Arguments and values:
+
  * `vec`: array of complex or real samples to bit-reverse.
  * `dst`: `nil`, or the destination array of the same type as `vec`.
  * `size`: number of elements to reorder. If `nil`, defaults to the
