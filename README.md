@@ -62,7 +62,7 @@ The core of the "easy" interface consists of:
  * `NAPA-FFT:FFT`: forward DFT
  * `NAPA-FFT:IFFT`: inverse DFT
  * `NAPA-FFT:BIT-REVERSE`: bit-reversal routine
- * Windowing support
+ * `NAPA-FFT:WINDOWED-FFT`: windows forward DFT
 
 ### `FFT`
 
@@ -78,7 +78,7 @@ Arguments and Values:
  * `in-order`: whether the result should be in-order (default, `t`) or
    bit-reversed (`nil`).
  * `scale`: how the result should be scaled: not at all (default,
-   `nil`), by _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n _ (`t`,
+   `nil`), by _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n_ (`t`,
    or `:inv`).
  * `window`: whether the input should be multiplied element-wise by 1
    (default, `nil`), a simple array of doubles (`real-sample` or
@@ -140,7 +140,7 @@ Arguments and Values:
  * `in-order`: whether the result should be in-order (default, `t`) or
    bit-reversed (`nil`).
  * `scale`: how the result should be scaled: not at all (`nil`), by
-   _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n _ (default, `t` or `:inv`).
+   _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n_ (default, `t` or `:inv`).
  * `window`: whether the input should be multiplied element-wise by 1
    (default, `nil`), a simple array of doubles (`real-sample` or
    `float`), or by a simple array of complex doubles (`complex-sample`
@@ -215,7 +215,7 @@ Example:
     CL-USER> (napa-fft:bit-reverse * *)
     #(0.0d0 1.0d0 2.0d0 3.0d0)
 
-### Windowing support
+### `WINDOWED-FFT
 
 TODO. It's the same as Bordeaux FFT.
 
