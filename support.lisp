@@ -61,7 +61,8 @@
 (defun power-of-two-p (x)
   (= 1 (logcount x)))
 
-(declaim (ftype (function (sequence &optional size) (values complex-sample-array &optional))
+(declaim (ftype (function (sequence &optional size)
+                          (values complex-sample-array &optional))
                 complex-samplify))
 (defun complex-samplify (vec &optional (size (length vec)))
   (etypecase vec
@@ -91,7 +92,8 @@
                  (coerce x 'complex-sample))
                vec))))
 
-(declaim (ftype (function (sequence &optional size) (values real-sample-array &optional))
+(declaim (ftype (function (sequence &optional size)
+                          (values real-sample-array &optional))
                 real-samplify))
 (defun real-samplify (vec &optional (size (length vec)))
   (etypecase vec
