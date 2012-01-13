@@ -7,7 +7,7 @@
   '(member nil 1 t :inv sqrt :sqrt))
 
 (deftype windowing ()
-  '(member nil float double-float complex complex-sample))
+  '(member nil float real-sample complex complex-sample))
 
 (defun find-index (direction scaling windowing)
   (check-type direction direction)
@@ -23,7 +23,7 @@
         (windowing (ecase windowing
                      ((nil)            0)
                      ((float
-                       double-float)   1)
+                       real-sample)   1)
                      ((complex
                        complex-sample) 2))))
     (+ (* direction 3 3)
@@ -44,7 +44,7 @@
                      ((sqrt :sqrt) (/ (sqrt (float n 1d0))))))
         (windowing (ecase windowing
                      ((nil) nil)
-                     ((float double-float) 'double-float)
+                     ((float real-sample) 'real-sample)
                      ((complex complex-sample) 'complex-sample))))
     (compile
      nil
@@ -97,12 +97,12 @@
 (defvar *double-bit-reverses* (make-array 33 :initial-element nil))
 
 (defun %ensure-reverse (n &optional (eltype 'complex-sample))
-  (assert (member eltype '(complex-sample double-float)))
+  (assert (member eltype '(complex-sample real-sample)))
   (assert (power-of-two-p n))
   (let ((len (lb n))
         (vec (ecase eltype
                (complex-sample *bit-reverses*)
-               (double-float   *double-bit-reverses*))))
+               (real-sample    *double-bit-reverses*))))
     (block nil
       (flet ((check ()
                (let ((id (aref vec len)))

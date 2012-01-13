@@ -11,16 +11,16 @@
         (t (copy-seq src))))
 
 (defun %bit-reverse-double (vec dst size)
-  (declare (type (simple-array double-float 1) vec)
-           (type (or null (simple-array double-float 1)) dst)
+  (declare (type real-sample-array vec)
+           (type (or null real-sample-array) dst)
            (type index size))
   (assert (>= (length vec) size))
   (let* ((dst (copy-or-replace vec dst))
          (n   size)
          (scratch (or *double-scratch*
                       (make-array n :element-type 'double-float)))
-         (fun (%ensure-reverse n 'double-float)))
-    (declare (type (simple-array double-float 1) scratch))
+         (fun (%ensure-reverse n 'real-sample)))
+    (declare (type real-sample-array scratch))
     (assert (>= (length dst) size))
     (when (< (length scratch) n)
       (setf scratch (make-array n :element-type 'double-float)
@@ -48,13 +48,13 @@
   (etypecase vec
     (complex-sample-array
      (%bit-reverse-complex vec dst size))
-    ((simple-array double-float 1)
+    (real-sample-array
      (%bit-reverse-double vec dst size))))
 
 (defun get-window-type (window)
   (etypecase window
     (complex-sample-array 'complex-sample)
-    ((simple-array double-float 1) 'double-float)))
+    (real-sample-array    'real-sample)))
 
 (defun fft (vec &key dst
                   (size (length vec))

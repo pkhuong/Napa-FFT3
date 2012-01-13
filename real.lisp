@@ -82,83 +82,88 @@
         ,@body))))
 
 (defun rfft (vec &key dst
-                      (size (length vec))
-                      (scale nil))
-  (declare (type (simple-array double-float 1) vec)
-           (type size size)
-           (type scaling scale)
+                   size
+                   (scale nil))
+  (declare (type scaling scale)
            (optimize speed))
-  (assert (>= (length vec) size))
-  (assert (power-of-two-p size))
-  (let* ((n   size)
-         (n/2 (truncate n 2))
-         (dst (or dst
-                  (make-array n :element-type 'complex-sample)))
-         (twiddle (get-radix-2-twiddle n 1d0)))
-    (declare (type complex-sample-array twiddle)
-             (type complex-sample-array dst))
-    (assert (>= (length dst) size))
-    (with-scale (scale)
-      (loop for i of-type index below n by 2
-             for j of-type index from 0
-             do (setf (aref dst j)
-                      (scale (complex (aref vec i)
-                                      (aref vec (+ i 1)))))))
-    (fft-swizzled-reals dst scale)
-    (loop for i of-type index below n/2
-          for j of-type index from n/2
-          do
-          (let* ((x (aref dst i))
-                 (y (* (aref dst j) (aref twiddle i))))
-            (setf (aref dst i) (+ x y)
-                  (aref dst j) (- x y))))
-    dst))
+  (let* ((vec (real-samplify vec))
+         (size (or size (length vec))))
+    (declare (type real-sample-array vec)
+             (type size size))
+    (assert (>= (length vec) size))
+    (assert (power-of-two-p size))
+    (let* ((n   size)
+           (n/2 (truncate n 2))
+           (dst (or dst
+                    (make-array n :element-type 'complex-sample)))
+           (twiddle (get-radix-2-twiddle n 1d0)))
+      (declare (type complex-sample-array twiddle)
+               (type complex-sample-array dst))
+      (assert (>= (length dst) size))
+      (locally (declare (optimize (safety 0)))
+        (with-scale (scale)
+          (loop for i of-type index below n by 2
+                for j of-type index from 0
+                do (setf (aref dst j)
+                         (scale (complex (aref vec i)
+                                         (aref vec (+ i 1)))))))
+        (fft-swizzled-reals dst scale)
+        (loop for i of-type index below n/2
+              for j of-type index from n/2
+              do
+                 (let* ((x (aref dst i))
+                        (y (* (aref dst j) (aref twiddle i))))
+                   (setf (aref dst i) (+ x y)
+                         (aref dst j) (- x y)))))
+      dst)))
 
 (defun windowed-rfft (signal-vector center length
                       &key (window-fn 'hann)
                            dst
                            (scale     nil))
-  (declare (type (simple-array double-float 1) signal-vector)
-           (type index length)
+  (declare (type index length)
            (optimize speed))
   (assert (power-of-two-p length))
-  (let* ((input-window (extract-centered-window signal-vector center length))
+  (let* ((signal-vector (real-samplify signal-vector))
+         (input-window (extract-centered-window signal-vector center length))
          (window       (window-vector window-fn length)))
-    (declare (type (simple-array double-float 1) input-window window))
+    (declare (type real-sample-array signal-vector input-window window))
     (map-into input-window #'* input-window window)
     (rfft input-window
           :dst dst
           :scale scale)))
 
-(defun rifft (vec &key dst (size (length vec)) (scale t))
-  (declare (type complex-sample-array vec)
-           (type scaling scale)
-           (type size size)
+(defun rifft (vec &key dst size (scale t))
+  (declare (type scaling scale)
            (optimize speed))
-  (assert (>= (length vec) size))
-  (assert (power-of-two-p size))
-  (let* ((n   size)
-         (n/2 (truncate n 2))
-         (twiddle (get-radix-2-twiddle n -1d0))
-         (dst (or dst
-                  (make-array n :element-type 'double-float))))
-    (declare (type complex-sample-array twiddle)
-             (type (simple-array double-float 1) dst))
-    (assert (>= (length dst) size))
-    (loop for i of-type index below n/2
-          for j of-type index from n/2
-          do (let* ((x (aref vec i))
-                    (y (aref vec j))
-                    (sum (+ x y))
-                    (sub (* (- x y)
-                            (aref twiddle i))))
-               (setf (aref vec i) (+ sum sub))))
-    (ifft vec :dst vec :size n/2 :scale scale)
-    (with-scale (scale)
-      (loop for i of-type index below n/2
-            for j of-type index by 2
-            do (let ((x (scale (aref vec i))))
-                 (setf (aref dst j) (realpart x)
-                       (aref dst (1+ j)) (imagpart x)))))
-    dst))
+  (let* ((vec  (complex-samplify vec))
+         (size (or size (length vec))))
+    (declare (type size size))
+    (assert (>= (length vec) size))
+    (assert (power-of-two-p size))
+    (let* ((n   size)
+           (n/2 (truncate n 2))
+           (twiddle (get-radix-2-twiddle n -1d0))
+           (dst (or dst
+                    (make-array n :element-type 'double-float))))
+      (declare (type complex-sample-array twiddle)
+               (type real-sample-array dst))
+      (assert (>= (length dst) size))
+      (locally (declare (optimize (safety 0)))
+        (loop for i of-type index below n/2
+              for j of-type index from n/2
+              do (let* ((x (aref vec i))
+                        (y (aref vec j))
+                        (sum (+ x y))
+                        (sub (* (- x y)
+                                (aref twiddle i))))
+                   (setf (aref vec i) (+ sum sub))))
+        (ifft vec :dst vec :size n/2 :scale scale)
+        (with-scale (scale)
+          (loop for i of-type index below n/2
+                for j of-type index by 2
+                do (let ((x (scale (aref vec i))))
+                     (setf (aref dst j) (realpart x)
+                           (aref dst (1+ j)) (imagpart x))))))
+      dst)))
 

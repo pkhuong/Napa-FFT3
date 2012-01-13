@@ -32,10 +32,12 @@
   (:export "INDEX" "HALF-INDEX"
            "SIZE" "HALF-SIZE"
            "COMPLEX-SAMPLE" "COMPLEX-SAMPLE-ARRAY"
+           "REAL-SAMPLE" "REAL-SAMPLE-ARRAY"
            "BIT-REVERSE-INTEGER"
            "MAKE-TWIDDLE" "+TWIDDLE-OFFSET+"
            "LB" "POWER-OF-TWO-P"
-           "COMPLEX-SAMPLIFY"))
+           "COMPLEX-SAMPLIFY"
+           "REAL-SAMPLIFY"))
 
 (defpackage "NAPA-FFT.GEN"
   (:use "CL" "SB-EXT" "NAPA-FFT" "NAPA-FFT.SUPPORT")

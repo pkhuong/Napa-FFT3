@@ -19,6 +19,12 @@
 (deftype complex-sample-array (&optional size)
   `(simple-array complex-sample (,size)))
 
+(deftype real-sample ()
+  'double-float)
+
+(deftype real-sample-array (&optional size)
+  `(simple-array real-sample (,size)))
+
 (defun bit-reverse-integer (x width)
   (let ((acc 0))
     (loop repeat width
@@ -58,7 +64,13 @@
 (defun complex-samplify (vec)
   (etypecase vec
     (complex-sample-array vec)
-    ((simple-array double-float 1)
+    ((simple-array (complex single-float) 1)
+     (map-into (make-array (length vec)
+                           :element-type 'complex-sample)
+               (lambda (x)
+                 (coerce x 'complex-sample))
+               vec))
+    (real-sample-array
      (map-into (make-array (length vec)
                            :element-type 'complex-sample)
                (lambda (x)
@@ -75,5 +87,23 @@
                            :element-type 'complex-sample)
                (lambda (x)
                  (coerce x 'complex-sample))
+               vec))))
+
+(declaim (ftype (function (sequence) (values real-sample-array &optional))
+                real-samplify))
+(defun real-samplify (vec)
+  (etypecase vec
+    (real-sample-array vec)
+    ((simple-array single-float 1)
+     (map-into (make-array (length vec)
+                           :element-type 'real-sample)
+               (lambda (x)
+                 (coerce x 'real-sample))
+               vec))
+    (sequence
+     (map-into (make-array (length vec)
+                           :element-type 'real-sample)
+               (lambda (x)
+                 (coerce x 'real-sample))
                vec))))
 

@@ -110,7 +110,7 @@
 
 (defun apply-window-inv (vec window)
   (declare (type complex-sample-array vec)
-           (type (simple-array double-float 1) window))
+           (type real-sample-array window))
   (map-into vec #'/ vec window))
 
 (defun make-windowed-fwd (n window)
@@ -118,7 +118,7 @@
                       `(lambda (vec start window window-start twiddle)
                          (declare (type complex-sample-array 
                                         vec twiddle)
-                                  (type (simple-array double-float 1)
+                                  (type real-sample-array
                                         window)
                                   (type index start window-start))
                          twiddle window window-start
@@ -133,7 +133,7 @@
                       `(lambda (vec start window window-start twiddle)
                          (declare (type complex-sample-array 
                                         vec twiddle)
-                                  (type (simple-array double-float 1)
+                                  (type real-sample-array
                                         window)
                                   (type index start window-start))
                          twiddle window window-start
@@ -159,7 +159,7 @@
                                    :forward nil
                                    :scale :sqrt
                                    :in-order *fancy-in-order*))
-            (rev (get-reverse n 'double-float)))
+            (rev (get-reverse n 'real-sample)))
         (if *fancy-in-order*
             (lambda (vec window)
               (funcall rev window)
@@ -214,7 +214,7 @@
                `((lambda (vec start window window-start)
                    (declare (type complex-sample-array 
                                   vec)
-                            (type (simple-array double-float 1)
+                            (type real-sample-array
                                   window)
                             (type index start window-start))
                    (let ((twiddle ,(make-twiddle n)))
@@ -223,7 +223,7 @@
                  (lambda (vec start window window-start)
                    (declare (type complex-sample-array 
                                   vec)
-                            (type (simple-array double-float 1)
+                            (type real-sample-array
                                   window)
                             (type index start window-start))
                    (let ((twiddle ,(make-twiddle n -1d0)))
