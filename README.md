@@ -164,7 +164,7 @@ corresponding values in `window` during the transform; similarly, the
 values are scaled according to the value of `scale`.  Note that this
 happens *after* the bit-reversal.  The `window` should thus be
 bit-reversed itself.  Since this corresponds to a convolution, this is
-easily satisfied.
+usually easily satisfied.
 
 Example:
 
@@ -225,9 +225,9 @@ Real Interface
 The real interface offers three functions specialized to operate on
 real (not complex) data:
 
- * `NAPA-FFT:RFFT` performs real-input FFT.
- * `NAPA-FFT:WINDOWED-RFFT` performs windowed real-input FFTs.
- * `NAPA-FFT:RIFFT` performs real-output inverse FFT.
+ * `NAPA-FFT:RFFT` performs in-order real-input FFT.
+ * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input FFTs.
+ * `NAPA-FFT:RIFFT` performs in-order real-output inverse FFT.
 
 There are convenient because the result is a vector of real values,
 but also offer strong performance improvements (almost halving
