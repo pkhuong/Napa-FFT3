@@ -81,21 +81,23 @@
         (declare (inline scale))
         ,@body))))
 
-(defun rfft (vec dst &key
-                       (size (length vec))
-                       (scale nil))
+(defun rfft (vec &key dst
+                      (size (length vec))
+                      (scale nil))
   (declare (type (simple-array double-float 1) vec)
-           (type complex-sample-array dst)
            (type size size)
            (type scaling scale)
            (optimize speed))
-  (assert (>= (length dst) size))
   (assert (>= (length vec) size))
   (assert (power-of-two-p size))
   (let* ((n   size)
          (n/2 (truncate n 2))
+         (dst (or dst
+                  (make-array n :element-type 'complex-sample)))
          (twiddle (get-radix-2-twiddle n 1d0)))
-    (declare (type complex-sample-array twiddle))
+    (declare (type complex-sample-array twiddle)
+             (type complex-sample-array dst))
+    (assert (>= (length dst) size))
     (with-scale (scale)
       (loop for i of-type index below n by 2
              for j of-type index from 0
@@ -124,23 +126,25 @@
          (window       (window-vector window-fn length)))
     (declare (type (simple-array double-float 1) input-window window))
     (map-into input-window #'* input-window window)
-    (rfft input-window (or dst
-                           (make-array length :element-type 'complex-sample))
+    (rfft input-window
+          :dst dst
           :scale scale)))
 
-(defun rifft (vec dst &key (size (length vec)) (scale t))
-  (declare (type (simple-array double-float 1) dst)
-           (type complex-sample-array vec)
+(defun rifft (vec &key dst (size (length vec)) (scale t))
+  (declare (type complex-sample-array vec)
            (type scaling scale)
            (type size size)
            (optimize speed))
-  (assert (>= (length dst) size))
   (assert (>= (length vec) size))
   (assert (power-of-two-p size))
   (let* ((n   size)
          (n/2 (truncate n 2))
-         (twiddle (get-radix-2-twiddle n -1d0)))
-    (declare (type complex-sample-array twiddle))
+         (twiddle (get-radix-2-twiddle n -1d0))
+         (dst (or dst
+                  (make-array n :element-type 'double-float))))
+    (declare (type complex-sample-array twiddle)
+             (type (simple-array double-float 1) dst))
+    (assert (>= (length dst) size))
     (loop for i of-type index below n/2
           for j of-type index from n/2
           do (let* ((x (aref vec i))
