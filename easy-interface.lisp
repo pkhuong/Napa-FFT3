@@ -10,40 +10,46 @@
          (replace dst src))
         (t (copy-seq src))))
 
-(defun %bit-reverse-double (vec dst)
+(defun %bit-reverse-double (vec dst size)
   (declare (type (simple-array double-float 1) vec)
-           (type (or null (simple-array double-float 1)) dst))
+           (type (or null (simple-array double-float 1)) dst)
+           (type index size))
+  (assert (>= (length vec) size))
   (let* ((dst (copy-or-replace vec dst))
-         (n   (length vec))
+         (n   size)
          (scratch (or *double-scratch*
                       (make-array n :element-type 'double-float)))
          (fun (%ensure-reverse n 'double-float)))
     (declare (type (simple-array double-float 1) scratch))
+    (assert (>= (length dst) size))
     (when (< (length scratch) n)
       (setf scratch (make-array n :element-type 'double-float)
             *double-scratch* scratch))
     (funcall fun dst 0 scratch 0)))
 
-(defun %bit-reverse-complex (vec dst)
+(defun %bit-reverse-complex (vec dst size)
   (declare (type complex-sample-array vec)
-           (type (or null complex-sample-array) dst))
+           (type (or null complex-sample-array) dst)
+           (type index size))
+  (assert (>= (length vec) size))
   (let* ((dst (copy-or-replace vec dst))
-         (n   (length vec))
+         (n   size)
          (scratch (or *scratch*
                       (make-array n :element-type 'complex-sample)))
          (fun (%ensure-reverse n)))
     (declare (type complex-sample-array scratch))
+    (assert (>= (length dst) size))
     (when (< (length scratch) n)
       (setf scratch (make-array n :element-type 'complex-sample)
             *scratch* scratch))
     (funcall fun dst 0 scratch 0)))
 
-(defun bit-reverse (vec &optional dst)
+(defun bit-reverse (vec &optional dst (size (length vec)))
   (etypecase vec
     (complex-sample-array
-     (%bit-reverse-complex vec dst))
+     (%bit-reverse-complex vec dst size))
     ((simple-array double-float 1)
-     (%bit-reverse-double vec dst))))
+     (%bit-reverse-double vec dst size))))
 
 (defun get-window-type (window)
   (etypecase window
@@ -68,7 +74,7 @@
         (funcall (get-fft n :scale scale :in-order nil)
                  dst))
     (if in-order
-        (bit-reverse dst dst)
+        (bit-reverse dst dst n)
         dst)))
 
 (defun ifft (vec &key dst
@@ -82,7 +88,7 @@
          (n   size))
     (assert (>= (length dst) size))
     (when in-order
-      (bit-reverse dst dst))
+      (bit-reverse dst dst n))
     (if window
         (funcall (get-windowed-fft n (get-window-type window)
                                    :forward nil
