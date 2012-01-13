@@ -1,0 +1,146 @@
+(in-package "NAPA-FFT.IMPL")
+
+;;; Windowing code by Andy Hefner
+;;; Originally part of Bordeaux-FFT, now dual-licensed as BSD
+
+(defun rectangular (i n)
+  (declare (ignore i n))
+  1.0f0)
+
+(defun hann (i n) (* 0.5 (- 1.0 (cos (/ (* 2 pi i) (1- n))))))
+
+(defun blackman* (alpha i n)
+  (let ((a0 (/ (- 1 alpha) 2))
+        (a1 0.5)
+        (a2 (/ alpha 2)))
+    (+ a0 
+       (- (* a1 (cos (/ (* 2 pi i) (1- n))))) 
+       (* a2 (cos (/ (* 4 pi i) (1- n)))))))
+
+(defun blackman (i n) (blackman* 0.16 i n))
+
+(defun triangle (i n) 
+  (* (/ 2 n) (- (* n 0.5) (abs (- i (* 0.5 (1- n)))))))
+
+(defun bartlett (i n) 
+  (* (/ 2 (1- n)) (- (* (1- n) 0.5) (abs (- i (* 0.5 (1- n)))))))
+
+(defun gauss* (sigma i n)
+  (let (([n-1]/2 (* 0.5 (1- n))))
+    (exp (* -0.5 (expt (/ (- i [n-1]/2) (* sigma [n-1]/2)) 2)))))
+
+(let ((cache (make-hash-table)))
+  (defun gaussian (sigma) 
+    (or (gethash sigma cache)
+        (setf (gethash sigma cache)
+              (lambda (i n) (gauss* sigma i n))))))
+
+(let ((cache (make-hash-table :test 'equal)))
+  (defun gaussian*bartlett^x (sigma triangle-exponent)
+    (or (gethash (list sigma triangle-exponent) cache)
+        (setf (gethash (list sigma triangle-exponent) cache)
+              (lambda (i n)
+                (* (realpart (expt (bartlett i n) triangle-exponent))
+                   (gauss* sigma i n)))))))
+
+(defun cosine-series (i n a0 a1 a2 a3)
+  (flet ((f (scale x) (* scale (cos (/ (* x pi i) (1- n))))))
+    (+ a0 (- (f a1 2)) (f a2 4) (- (f a3 6)))))
+
+(defun blackman-harris (i n)
+  (cosine-series i n 0.35875f0 0.48829f0 0.14128f0 0.01168f0))
+
+(let ((cache (make-hash-table :test 'equalp)))
+  (defun window-vector (function n)
+    (or (gethash (list function n) cache)
+        (setf (gethash (list function n) cache)
+              (let ((v (make-sequence '(simple-array double-float (*)) n)))
+                (dotimes (i n v) 
+                  (setf (aref v i) 
+                        (float (funcall function i n) 0.0d0))))))))
+
+(defun clip-in-window (x start end) (max start (min x end)))
+
+(defun extract-window-into (vector start length destination)
+  "Copy an extent of VECTOR to DESTINATION. Outside of its legal array
+indices, VECTOR is considered to be zero."
+  (assert (<= length (length destination)))
+  (let ((start* (clip-in-window start 0 (length vector)))
+        (end*   (clip-in-window (+ start length) 0 (length vector))))
+    (unless (= length (- end* start*))
+      (fill destination (coerce 0 (array-element-type destination))))
+    (when (< -1 (- start* start) (length destination))
+      (replace destination vector
+               :start1 (- start* start)
+               :end1 (+ (- start* start) (- end* start*))
+               :start2 start*
+               :end2 end*)))
+  destination)
+
+(defun extract-window 
+    (vector start length &optional (element-type (array-element-type vector)))
+  (extract-window-into 
+   vector start length
+   (make-array length
+               :initial-element (coerce 0 element-type)
+               :element-type element-type
+               :adjustable nil
+               :fill-pointer nil)))
+
+(defun extract-centered-window-into (vector center size destination)
+  "Extract a subsequence of SIZE from VECTOR, centered on OFFSET and
+padding with zeros beyond the boundaries of the vector, storing it to
+DESTINATION."
+  (extract-window-into vector (- center (floor size 2)) size destination))
+
+(defun extract-centered-window 
+    (vector center size &optional (element-type (array-element-type vector)))
+  "Extract a subsequence of SIZE from VECTOR, centered on CENTER and
+padding with zeros beyond the edges of the vector."
+  (extract-centered-window-into 
+   vector center size
+   (make-array size
+               :initial-element (coerce 0 element-type)
+               :element-type element-type
+               :adjustable nil
+               :fill-pointer nil)))
+
+(defun convert-to-complex-sample-array (array)
+  (let ((output (make-array (length array) 
+                            :element-type 'complex-sample 
+                            :adjustable nil
+                            :fill-pointer nil)))
+    (typecase array
+      ((simple-array single-float 1)
+       (loop for index from 0 below (length array)
+             for x across array
+             do (setf (aref output index) (complex (float x 0.0d0) 0.0d0))))
+      ((simple-array double-float 1)
+       (loop for index from 0 below (length array)
+             do (setf (aref output index) (complex (aref array index) 0.0d0))))
+      (t
+       (loop for index from 0 below (length array)
+             for x across array
+             do (setf (aref output index) (complex (float (realpart x) 0.0d0) 0.0d0)))))
+    output))
+
+(defun windowed-fft (signal-vector center length
+                     &key (window-fn 'hann)
+                          dst
+                          (in-order t)
+                          (scale     nil))
+  "Perform an FFT on the window of a signal, centered on the given
+index, multiplied by a window generated by the chosen window function"
+  (declare (type fixnum length)
+           (optimize (speed 3)))
+  (unless (power-of-two-p length)
+    (error "FFT size ~D is not a power of two" length))
+  (unless (typep signal-vector 'complex-sample-array)
+    (setf signal-vector (convert-to-complex-sample-array signal-vector)))  
+  (let* ((input-window (extract-centered-window signal-vector center length))
+         (window       (window-vector window-fn length)))
+    (fft input-window
+         :dst dst
+         :in-order in-order
+         :scale scale
+         :window window)))
