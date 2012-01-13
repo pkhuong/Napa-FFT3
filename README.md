@@ -64,41 +64,40 @@ The core of the "easy" interface consists of:
  * `NAPA-FFT:BIT-REVERSE`: bit-reversal routine
  * `NAPA-FFT:WINDOWED-FFT`: windows forward DFT
 
-### `FFT`
+### FFT
 
 Syntax: `fft vec &key dst size in-order scale window => object`.
 
 Arguments and Values:
 
- * `vec`: sequence of complex samples (`(complex double-float)` values).
- * `dst`: `nil` (default) or a simple vector of complex samples
+ * _vec_: sequence of samples.
+ * _dst_: nil (default) or a simple vector of complex samples
    (destructively reused).
- * `size`: size of the transform to perform (must be a power of
-   two). The default is `(length vec)`.
- * `in-order`: whether the result should be in-order (default, `t`) or
-   bit-reversed (`nil`).
- * `scale`: how the result should be scaled: not at all (default,
-   `nil`), by _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n_ (`t`,
-   or `:inv`).
- * `window`: whether the input should be multiplied element-wise by 1
-   (default, `nil`), a simple array of doubles (`real-sample` or
-   `float`), or by a simple array of complex doubles (`complex-sample`
-   or `complex`).
- * `object`: a simple array of complex doubles. `dst` if not `nil`,
+ * _size_: size of the transform to perform (must be a power of
+   two). `(length vec)` if nil (default).
+ * _in-order_: whether the result should be in-order (default, t) or
+   bit-reversed (nil).
+ * _scale_: how the result should be scaled: not at all (default,
+   nil), by _1/sqrt(size)_ (:sqrt or sqrt), or by _1/n_ (t,
+   or :inv).
+ * _window_: simple array of double or complex doubles by which the
+   input is multiplied point-wise; no multiplication if nil
+   (default).
+ * _object_: a simple array of complex doubles. _dst_ if not nil,
    otherwise a newly-allocated array.
    
-`FFT` computes the DFT of the first `size` values in `vec`.
+`FFT` computes the DFT of the first _size_ values in _vec_.
 
-First, `vec` is converted to a simple array of complex samples if
-necessary.  The result is stored in `dst`, or a fresh array of complex
-doubles. `dst` may be the same object as `vec` for an in-place
+First, _vec_ is converted to a simple array of complex samples if
+necessary.  The result is stored in _dst_, or a fresh array of complex
+doubles. _dst_ may be the same object as _vec_ for an in-place
 transform.
 
-If `window` is provided, the values in `vec` are multiplied by the
-corresponding values in `window` during the transform; similarly, the
-values are scaled according to the value of `scale`.
+If _window_ is non-nil, each value in _vec_ is multiplied by the
+corresponding value in _window_ during the transform; similarly, the
+values are scaled according to the value of _scale_.
 
-If `in-order` is true, the result is then converted to be in order,
+If _in-order_ is true, the result is then converted to be in order,
 which can take more than half as much time as the FFT itself.
 
 Example:
@@ -120,51 +119,48 @@ Example:
     CL-USER> (napa-fft:fft '(0 1 2 3) :scale t)
     #(#C(1.5d0 0.0d0) #C(-0.5d0 0.5d0) #C(-0.5d0 0.0d0) #C(-0.5d0 -0.5d0))
     
-    ;; specifying :size but not :dst may lead to surprising results
     CL-USER> (napa-fft:fft '(0 1 2 3 5 6 7 8) :size 4 :scale t)
-    #(#C(1.5d0 0.0d0) #C(-0.5d0 0.5d0) #C(-0.5d0 0.0d0) #C(-0.5d0 -0.5d0)
-      #C(5.0d0 0.0d0) #C(6.0d0 0.0d0) #C(7.0d0 0.0d0) #C(8.0d0 0.0d0))
+    #(#C(1.5d0 0.0d0) #C(-0.5d0 0.5d0) #C(-0.5d0 0.0d0) #C(-0.5d0 -0.5d0))
 
 
-### `IFFT`
+### IFFT
 
 Syntax: `fft vec &key dst size in-order scale window => object`.
 
 Arguments and Values:
 
- * `vec`: sequence of complex samples (`(complex double-float)` values).
- * `dst`: `nil` (default) or a simple vector of complex samples
+ * _vec_: sequence of samples.
+ * _dst_: nil (default) or a simple vector of complex samples
    (destructively reused).
- * `size`: size of the transform to perform (must be a power of
-   two). The default is `(length vec)`.
- * `in-order`: whether the result should be in-order (default, `t`) or
-   bit-reversed (`nil`).
- * `scale`: how the result should be scaled: not at all (`nil`), by
-   _1/sqrt(size)_ (`:sqrt` or `sqrt`), or by _1/n_ (default, `t` or `:inv`).
- * `window`: whether the input should be multiplied element-wise by 1
-   (default, `nil`), a simple array of doubles (`real-sample` or
-   `float`), or by a simple array of complex doubles (`complex-sample`
-   or `complex`).
- * `object`: a simple array of complex doubles. `dst` if not `nil`,
+ * _size_: size of the transform to perform (must be a power of
+   two). `(length vec)` if nil (default).
+ * _in-order_: whether the result should be in-order (default, t) or
+   bit-reversed (nil).
+ * _scale_: how the result should be scaled: not at all (nil), by
+   _1/sqrt(size)_ (:sqrt or sqrt), or by _1/n_ (default, t or :inv).
+ * _window_: simple array of real or complex sample by which the
+   out-of-order input samples are multiplied elementwise.  If nil
+   (default), no multiplication is performed.
+ * _object_: a simple array of complex doubles. _dst_ if not nil,
    otherwise a newly-allocated array.
    
-`IFFT` computes the inverse DFT of the first `size` values in `vec`.
+`IFFT` computes the inverse DFT of the first _size_ values in _vec_.
 
-First, `vec` is converted to a simple array of complex samples if
-necessary.  The result is stored in `dst`, or a fresh array of complex
-doubles. `dst` may be the same object as `vec` for an in-place
+First, _vec_ is converted to a simple array of complex samples if
+necessary.  The result is stored in _dst_, or a fresh array of complex
+doubles. _dst_ may be the same object as _vec_ for an in-place
 transform.
 
-If `in-order` is true, the result is then converted to be
+If _in-order_ is true, the result is then converted to be
 bit-reversed, which can take more than half as much time as the FFT
 itself.
 
-If `window` is provided, the values in `vec` are multiplied by the
-corresponding values in `window` during the transform; similarly, the
-values are scaled according to the value of `scale`.  Note that this
-happens *after* the bit-reversal.  The `window` should thus be
-bit-reversed itself.  Since this corresponds to a convolution, this is
-usually easily satisfied.
+If _window_ is non-nil, each value in _vec_ is multiplied by the
+corresponding value in _window_ during the transform; similarly, the
+values are scaled according to _scale_.  Note that this happens
+_after_ the bit-reversal.  _window_ should thus be bit-reversed
+itself.  Since this corresponds to a convolution, this is usually
+easily satisfied.
 
 Example:
 
@@ -187,21 +183,21 @@ Example:
                                                   :in-order nil))
     #(#C(1.5d0 0.0d0) #C(0.0d0 0.0d0) #C(0.5d0 0.0d0) #C(1.0d0 0.0d0))
 
-### `BIT-REVERSE`
+### BIT-REVERSE
 
 Syntax: `bit-reverse vec &optional dst size => object`.
 
 Arguments and values:
 
- * `vec`: array of complex or real samples to bit-reverse.
- * `dst`: `nil`, or the destination array of the same type as `vec`.
- * `size`: number of elements to reorder. If `nil`, defaults to the
-   size of `vec`. Must be a power of two.
- * `object`: bit-reversed permutation of `vec`.
+ * _vec_: array of complex or real samples to bit-reverse.
+ * _dst_: nil, or the destination array of the same type as _vec_.
+ * _size_: number of elements to reorder. If nil, defaults to the
+   size of _vec_. Must be a power of two.
+ * _object_: bit-reversed permutation of _vec_.
  
-`BIT-REVERSE` permutes the first `size` elements in `vec` to
-bit-reversed indices, storing the result in `dst` if provided.  `vec`
-may be the same as `dst` for an in-place reversal.
+`BIT-REVERSE` permutes the first _size_ elements in _vec_ to
+bit-reversed indices, storing the result in _dst_ if provided.  _vec_
+may be the same as _dst_ for an in-place reversal.
 
 It should usually not be necessary to bit-reverse values explicitly,
 but it may still be useful to convert an in-order vector to
@@ -215,7 +211,7 @@ Example:
     CL-USER> (napa-fft:bit-reverse * *)
     #(0.0d0 1.0d0 2.0d0 3.0d0)
 
-### `WINDOWED-FFT
+### WINDOWED-FFT
 
 TODO. It's the same as Bordeaux FFT.
 
@@ -226,12 +222,12 @@ The real interface offers three functions specialized to operate on
 real (not complex) data:
 
  * `NAPA-FFT:RFFT` performs in-order real-input FFT.
- * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input FFTs.
  * `NAPA-FFT:RIFFT` performs in-order real-output inverse FFT.
+ * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input FFTs.
 
 There are convenient because the result is a vector of real values,
 but also offer strong performance improvements (almost halving
 computation times) for in-order, out-of-place, transforms.
 
-### `RFFT`
+### RFFT
 
