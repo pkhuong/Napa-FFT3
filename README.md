@@ -304,3 +304,357 @@ Same.
 Examples
 --------
 
+I'm no good at this signal processing stuff; most of what I know about
+this comes, indirectly, from classical music training.
+
+I'll use sox to play sound files easily, and the following function to
+convert float samples to `s32` files:
+
+    (defun emit-raw32-file (file data &optional (max 1d0))
+      (with-open-file (s file :direction :output :element-type '(signed-byte 32)
+                              :if-exists :supersede)
+        (write-sequence (map-into (make-array (length data) :element-type '(signed-byte 32))
+                                  (lambda (data)
+                                    (let ((x (/ (float (realpart data) 1d0)
+                                                max)))
+                                      (floor (* x (1- (ash 1 31))))))
+                                  data)
+                        s)
+        file))
+
+Napa-FFT3 does a fair amount of runtime compilation and cached
+computations.  If an operation is slow (more than one second), it was
+almost certainly due to a slow one-time operation; try running it
+again.  Also, there's a lot of gratuitous consing, here.  Nearly all
+the operations could be in-place and (nearly) non-consing without any
+change to the code.
+
+### Generate a single tone
+
+The standard frequency of the middle A is 440 Hz nowadays.  Sound is
+commonly generated, on computers, at 44100 Hz.  Let's generate a
+signal of 64k points that, when played back at 44100 Hz, will result
+in an A440.  The following function returns a vector with zeros
+everywhere except where specified in the first argument, a list
+designator of indices.
+
+    (defun impulse (i n &optional (value 1d0))
+      (let ((vec (make-array n :element-type 'napa-fft:complex-sample
+                               :initial-element (complex 0d0 0d0))))
+        (dolist (i (if (listp i) i (list i)) vec)
+          (setf (aref vec i) (complex (float value 1d0))))))
+
+The DFT computes a vector such that each entry corresponds to the
+amount of energy in the frequency(ies) corresponding to that entry.
+The _i_th entry of an _N_-element Fourier-coefficient vector, with an
+original sampling frequency of _F_ corresponds to a signal frequency
+of _iF/N_ (+/- _F/N_).  So, if we want a wave at 440 Hz in in a
+vector of 64k played back at 44100 Hz, we have to put energy in the
+_(440/44100)*65536_th bin.
+
+    ;; create a vector with 1 only in the bin corresponding to 440 Hz,
+    ;; convert back to the time domain, and save the double values as
+    ;; a file of (signed-byte 32) values.
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/a440.s32"
+                              (napa-fft:ifft (impulse (round (* 440 65536) 44100) 65536)
+                                             :scale nil))
+    "~/napa-fft3/example/foo.s32"
+
+    $ play -r44100 a440.s32 # play is a sox command; play a file os
+                           # signed 32 bit samples at 44100 Hz.
+                           # Should sound like an A440!
+
+### Generate a chord
+
+We (westerners) are mostly used to a scale system based on 12
+equispaced (not quite, but close enough) semi-tones.  Reality tends to
+enforce that the scale covers a range of frequences for _F_ to _2F_.
+For example, while the middle A is at 440 Hz, the one in the next
+octave is at 880 Hz.  The middle C is 9 half-tones lower than the
+middle A, at `(* 440 (expt .5 (/ 9 12)))`, around 262 Hz (264 Hz in
+the real world).  E is then 2 tones higher, at `(* 262 (expt 2 (/ 4 12)))`
+~= 330 Hz, and G a tone and a half higher again, `(* 330 (expt 2 (/ 3 12)))`
+~= 392 Hz.
+
+Thus, to head the boring middle C/E/G chord, we need energy at 262,
+330 and 392 Hz; note how the energy is 1/3 at each point, so that the
+total comes to 1.
+
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/chord.s32"
+                              (napa-fft:ifft (impulse (list (round (* 262 65536)
+                                                                   44100)
+                                                            (round (* 330 65536)
+                                                                   44100)
+                                                            (round (* 392 65536)
+                                                                   44100))
+                                                      65536
+                                                      (/ 3d0))
+                                             :scale nil))
+    "~/napa-fft3/example/foo.s32"
+    
+    $ play -r44100 chord.s32 # you should recognize this sound
+
+### Filter frequencies out
+
+First, let's save our time-domain chord signal:
+
+    CL-USER> (defparameter *chord* (napa-fft:ifft
+                                    (impulse (list (round (* 262 65536) 44100)
+                                                   (round (* 330 65536) 44100)
+                                                   (round (* 392 65536) 44100))
+                                             65536
+                                             (/ 3d0))
+                                    :scale nil))
+    *CHORD*
+
+Here's a function to generate random noise and another to average two vectors:
+
+    (defun noise (n &optional (range .5d0))
+      (let ((2range (* 2 range)))
+        (map-into (make-array n :element-type 'napa-fft:complex-sample)
+                  (lambda ()
+                    (complex (- (random 2range) range))))))
+    
+    (defun m+ (x y &optional (scale .5d0))
+      (map 'napa-fft:complex-sample-array
+           (lambda (x y)
+             (* scale (+ x y)))
+           x y))
+
+We can noise our signal up by adding noise to the chord:
+
+    CL-USER> (defparameter *noisy-chord* (m+ *chord* (noise 65536)))
+    *NOISY-CHORD*
+    
+    $ play -r44100 noised-chord.s32 # still recognizable, but
+                                    # annoying.
+
+Let's say that we know that the only interesting stuff is in the
+central octave.  We could zero out all the frequencies outside the
+262-524 Hz range.
+
+First, we have to convert the noisy signals in the frequency domain:
+
+    CL-USER> (defparameter *noisy-chord-freq* (napa-fft:fft *noisy-chord*))
+    *NOISY-CHORD-FREQ*
+
+Then, we want to replace everything outside `(round (* 262 65536) 44100)` and
+`(round (* 524 65536) 44100)` with 0:
+
+    CL-USER> (defparameter *octave-chord-freq* (copy-seq *noisy-chord-freq*))
+    *OCTAVE-CHORD-FREQ*
+    CL-USER> (prog1 nil
+               (fill *octave-chord-freq* (complex 0d0)
+                     :end (round (* 262 65536) 44100))
+               (fill *octave-chord-freq* (complex 0d0)
+                     :start (1+ (round (* 524 65536) 44100))))
+
+Now, we can convert back in the time domain and listen to the result:
+
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord.s32"
+                              (napa-fft:ifft *octave-chord-freq*))
+
+Much better.
+
+#### Filter frequencies out in a real signal
+
+Note that, as is often the case, we know that our signal is real (has
+no imaginary component).  In this case, we can use real-only FFT/IFFT
+instead:
+
+    CL-USER> (defparameter *noisy-chord-freq*
+               (napa-fft:rfft (map 'napa-fft:real-sample-array
+                                   #'realpart
+                                   *noisy-chord*)))
+    *NOISY-CHORD-FREQ*
+    CL-USER> (prog1 nil
+               (fill *octave-chord-freq* (complex 0d0)
+                     :end (round (* 262 65536) 44100))
+               (fill *octave-chord-freq* (complex 0d0)
+                     :start (1+ (round (* 524 65536) 44100))))
+    NIL
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord.s32"
+                              (napa-fft:rifft *octave-chord-freq*))
+
+The result is the same, but (once the routines are compiled), each
+FFT/IFFT is about twice as fast.  Mind the fact that rifft is
+destructive on its input, however.
+
+#### Filter frequencies out during the IFFT
+
+We can do this directly, by filtering during the inverse FFT.
+Replacing most values with 0 and leaving the rest along is equivalent
+to multiplying by 0 or 1.  Usually, we want a more gradual dampening,
+so we'll multiply by intermediate values as well.
+
+    CL-USER> (defparameter *filter* (make-array 65536 
+                                                :element-type 'napa-fft:real-sample
+                                                :initial-element 0d0))
+    *FILTER*
+    CL-USER> (prog1 nil
+               (fill *filter* 1d0
+                     :start (round (* 262 65536) 44100)
+                     :end   (1+ (round (* 524 65536) 44100))))
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord2.s32"
+                              (napa-fft:ifft *noisy-chord-freq*
+                                             :window *filter*))
+    "~/napa-fft3/example/octave-chord.s32"
+
+And we have the same final result.  Obviously, an advantage is that we
+can compute the filter once, and easily apply it directly.
+
+Another advantage is that we can bit-reverse (permute) the filter
+instead of bit-reversing after the FFT and before the IFFT.  Again,
+the final result is the same, but we only bit-reverse the constant
+filter vector instead of many frequency domain vector.
+
+    CL-USER> (defparameter *bit-reversed-filter* (napa-fft:bit-reverse *filter*))
+    *BIT-REVERSED-FILTER*
+    ;; neither the fft or the ifft is in order; the filter itself is
+    ;; out of order
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord3.s32"
+                              (napa-fft:ifft 
+                               (napa-fft:fft *noisy-chord* :in-order nil)
+                               :in-order nil
+                               :window *bit-reversed-filter*))
+    "~/napa-fft3/example/octave-chord3.s32"
+
+### Filter low-amplitude noise out
+
+In the previous example we already knew at what frequency the
+interesting signal was.  That's sometimes the case (e.g. when some of
+us unconsciously filter out annoyingly-high-pitched voices), but
+somewhat uncommon.
+
+Instead of applying a constant filter on frequencies, we can attempt
+to find which frequencies dominate (have a high energy), and eliminate
+the rest.
+
+#### Filter by strength
+
+The easiest way is to find the frequency with the most energy, and
+clamp out everything that's below a fixed fraction (e.g. 1%) of that.
+
+    (defun amplitude-clamp-fraction (vector fraction)
+      (let ((limit (* (reduce #'max vector :key #'abs)
+                      fraction)))
+        (map 'napa-fft:complex-sample-array
+             (lambda (x)
+               (if (< (abs x) limit)
+                   (complex 0d0)
+                   x))
+             vector)))
+
+This function performs the same operation, regardless of the order in
+which its data is permuted.  We can thus use out-of-order FFTs and
+IFFTs here as well.
+
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord4.s32"
+                              (napa-fft:ifft
+                               (amplitude-clamp-fraction
+                                (napa-fft:fft *noisy-chord* :in-order nil)
+                                1d-2)
+                               :in-order nil))
+    "~/napa-fft3/example/octave-chord4.s32"
+
+When frequencies below 1% of the max energy are zeroed out, the amount
+of noise is significantly reduced, but there's still an annoying
+ringing.  Increasing the limit to 2% improves matters a lot; however,
+if we set too high a limit, we'll start to filter out interesting, if
+somewhat weak, sounds.
+
+#### Filter by population
+
+We could also know ahead of time that there are only a few (e.g. 3)
+interesting frequencies in the signal.  In that case, we can find the
+k frequencies with the most energy, and remove everything else:
+
+    (defun amplitude-clamp-k (vector k)
+      (let* ((n      (length vector))
+             (values (make-array n)))
+        (dotimes (i n)
+          (setf (aref values i) (cons (abs (aref vector i)) i)))
+        ;; this would be a heap or a quickselect if I cared
+        (sort values #'> :key #'car)
+        (let ((result (make-array n
+                                  :element-type 'napa-fft:complex-sample
+                                  :initial-element (complex 0d0))))
+          (loop repeat k
+                for (nil . i) across values
+                do (setf (aref result i) (aref vector i))
+                finally (return result)))))
+
+Again, the input may be permuted without changing the result, so we
+can stick to out-of-order transforms:
+
+    CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord5.s32"
+                              (napa-fft:ifft
+                               (amplitude-clamp-k
+                                (napa-fft:fft *noisy-chord* :in-order nil)
+                                3) ; we're cheating here (:
+                               :in-order nil))
+    "~/napa-fft3/example/octave-chord5.s32"
+
+### Windowing chunks of long signals
+
+TODO.  Let's filter Justin Bieber out of his songs.
+
+### Multiplying integers or polynomials via a convolution
+
+So far, we've been using point-wise multiplication in the frequency
+domain to filter frequencies out.  We can also see it as a nice way to
+execute convolutions.  We can use this to implement fast
+multiplication of polynomials, or integer, with the right encoding.
+Please don't use it for bignum multiplication without checking the
+precision of the transforms.
+
+Let's multiply 1005 by 1234. 1005 is 1\*10^3 + 0\*10^2 + 0\*10^1 +
+5\*10^0, which we can encode, as a vector: #(1 0 0 5 0 0 0 0) (note
+the padding at the end), and similarly for 1234.  Again, filtering is
+oblivious to any permutation (as long as the windowing vector is
+bit-reversed), so we can do everything out of order.
+
+    CL-USER> (napa-fft:fft #(1 0 0 5 0 0 0 0) :in-order nil)
+    #(#C(6.0d0 0.0d0) #C(-4.0d0 0.0d0) #C(1.0d0 5.0d0) #C(1.0d0 -5.0d0)
+      #C(-2.5355339059327378d0 -3.5355339059327378d0)
+      #C(4.535533905932738d0 3.5355339059327378d0)
+      #C(4.535533905932738d0 -3.5355339059327378d0)
+      #C(-2.5355339059327378d0 3.5355339059327378d0))
+    CL-USER> (napa-fft:fft #(1 2 3 4 0 0 0 0) :in-order nil)
+    #(#C(10.0d0 0.0d0) #C(-2.0d0 0.0d0) #C(-2.0d0 2.0d0) #C(-2.0d0 -2.0d0)
+      #C(-0.41421356237309515d0 -7.242640687119286d0)
+      #C(2.414213562373095d0 1.2426406871192857d0)
+      #C(2.414213562373095d0 -1.2426406871192857d0)
+      #C(-0.41421356237309515d0 7.242640687119286d0))
+    CL-USER> (napa-fft:ifft * :window ** :in-order nil)
+    #(#C(0.9999999999999982d0 0.0d0) #C(1.9999999999999991d0 0.0d0)
+      #C(3.0d0 0.0d0) #C(9.0d0 0.0d0) #C(10.000000000000002d0 0.0d0)
+      #C(15.0d0 0.0d0) #C(20.0d0 0.0d0) #C(-8.881784197001252d-16 0.0d0))
+
+If we remove the imaginary portions (which are all 0) and round some
+numerical errors away, we find #(1 2 3 9 10 15 20 0), this time with only
+one element of padding: 1\*10^6 + 2\*10^5 + 3\*10^4 + 9\*10^3 +
+10\*10^2, etc.  If we take care of the carries, we find 1240170, which
+is indeed 1005 \* 1234.
+
+Of course, we can also exploit the fact that the input and output are
+all reals to use `rfft` and `rifft`.  We can do even better with
+`%2rfft`, which performs 2 real fft at at the time.  However, if we do
+that, we hae to use in-order transforms.  It's a trade off, and even
+if we're only concerned with computation times, the right answer
+depends on a lot of variables.
+
+    ;; the results are returned one after the other in a single
+    ;; vector of complex doubles
+    CL-USER> (napa-fft:%2rfft '(1 0 0 5 0 0 0 0)
+                              '(1 2 3 4 0 0 0 0))
+    #(#C(6.0d0 0.0d0) #C(-2.5355339059327378d0 -3.5355339059327378d0)
+      #C(1.0d0 5.0d0) #C(4.535533905932738d0 -3.535533905932738d0)
+      ...)
+      
+    CL-USER> (let ((x (subseq * 0 8))
+                   (y (subseq * 8)))
+               (napa-fft:rifft (map-into x #'* x y)))
+    #(0.9999999999999991d0 2.0d0 2.9999999999999964d0 9.0d0 10.0d0 15.0d0
+      20.000000000000004d0 -8.881784197001252d-16)
+
