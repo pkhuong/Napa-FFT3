@@ -77,7 +77,7 @@
         ,@body))
      ((:sqrt sqrt)
       (flet ((scale (x)
-               (* x ,(sqrt .5d0))))
+               (* x ,(/ (sqrt 2d0)))))
         (declare (inline scale))
         ,@body))))
 

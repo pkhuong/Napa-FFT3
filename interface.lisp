@@ -41,7 +41,11 @@
         (scaling   (ecase scaling
                      ((nil 1)   1d0)
                      ((t :inv)  (/ 1d0 n))
-                     ((sqrt :sqrt) (/ (sqrt (float n 1d0))))))
+                     ((sqrt :sqrt)
+                      (if (eql direction 1)
+                          (/ (sqrt (float n 1d0)))
+                          (/ 1d0 (float n 1d0)
+                             (/ (sqrt (float n 1d0))))))))
         (windowing (ecase windowing
                      ((nil) nil)
                      ((float real-sample) 'real-sample)
