@@ -27,7 +27,7 @@ Finally, see the _Installation_ section for installation instructions,
 and the _Implementation_ section for all the gory details.
 
 Note that Napa-FFT3 currently only supports power-of-two-sized inputs;
-even when/if it will gain code for arbitrary sizes, power-of-twos will
+even when/if it will gain code for arbitrary sizes, powers of two will
 most likely be much more efficient, both in terms of runtime and space
 usage.
 
