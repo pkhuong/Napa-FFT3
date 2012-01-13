@@ -498,9 +498,12 @@ and the filter will also have intermediate values.
                                              1 0))
                                        65536))
     *FILTER*
+    CL-USER> (defparameter *filtered-noisy-chord-freq*
+               (map 'napa-fft:complex-sample-array #'*
+                    *filter* *noisy-chord-freq*))
+    *FILTERED-NOISY-CHORD-FREQ*
     CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord2.s32"
-                              (napa-fft:ifft *noisy-chord-freq*
-                                             :window *filter*))
+                              (napa-fft:ifft *filtered-noisy-chord-freq*))
     "~/napa-fft3/example/octave-chord.s32"
 
 And we have the same final result.  Obviously, an advantage is that we
