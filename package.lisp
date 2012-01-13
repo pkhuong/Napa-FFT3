@@ -20,6 +20,7 @@
            "WINDOWED-FFT"
 
            "*RFFT-TWIDDLES*" "*RIFFT-TWIDDLES*"
+           "%2RFFT"
            "RFFT" "RIFFT"
            "WINDOWED-RFFT"))
 

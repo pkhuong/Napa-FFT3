@@ -30,6 +30,23 @@
                      (aref vec (- n/2 i))  (- y (napa-fft.gen::mul+i -xj)))))
     vec))
 
+(defun %2rfft (v1 v2 &key dst
+                       size
+                       (scale nil))
+  (declare (type scaling scale)
+           (optimize speed))
+  (let* ((n  (or size (min (length v1)
+                           (length v2))))
+         (v1 (real-samplify v1 n))
+         (v2 (real-samplify v2 n))
+         (dst (or dst (make-array (* 2 n)
+                                  :element-type 'complex-sample))))
+    (declare (type complex-sample-array dst))
+    (map-into dst (lambda (x y)
+                    (complex x y))
+                v1 v2)
+    (fft-swizzled-reals dst scale)))
+
 (defvar *rfft-twiddles* nil)
 (defvar *rifft-twiddles* nil)
 
