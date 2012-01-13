@@ -356,7 +356,9 @@ _(440/44100)*65536_ th bin.
     ;; convert back to the time domain, and save the double values as
     ;; a file of (signed-byte 32) values.
     CL-USER> (emit-raw32-file "~/napa-fft3/example/a440.s32"
-                              (napa-fft:ifft (impulse (round (* 440 65536) 44100) 65536)
+                              (napa-fft:ifft (impulse (round (* 440 65536)
+                                                             44100)
+                                                      65536)
                                              :scale nil))
     "~/napa-fft3/example/foo.s32"
 
