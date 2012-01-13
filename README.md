@@ -488,7 +488,7 @@ destructive on its input, however.
 We can do this directly, by filtering during the inverse FFT.
 Replacing most values with 0 and leaving the rest along is equivalent
 to multiplying by 0 or 1.  Usually, we want a more gradual dampening,
-so we'll multiply by intermediate values as well.
+and the filter will also have intermediate values.
 
     CL-USER> (defparameter *filter*
                (napa-fft:window-vector (lambda (i n)
