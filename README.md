@@ -346,11 +346,11 @@ designator of indices.
 
 The DFT computes a vector such that each entry corresponds to the
 amount of energy in the frequency(ies) corresponding to that entry.
-The _i_th entry of an _N_-element Fourier-coefficient vector, with an
+The _i_ th entry of an _N_ -element Fourier-coefficient vector, with an
 original sampling frequency of _F_ corresponds to a signal frequency
-of _iF/N_ (+/- _F/N_).  So, if we want a wave at 440 Hz in in a
+of _iF/N_ (+/- _F/N_ ).  So, if we want a wave at 440 Hz in in a
 vector of 64k played back at 44100 Hz, we have to put energy in the
-_(440/44100)*65536_th bin.
+_(440/44100)*65536_ th bin.
 
     ;; create a vector with 1 only in the bin corresponding to 440 Hz,
     ;; convert back to the time domain, and save the double values as
