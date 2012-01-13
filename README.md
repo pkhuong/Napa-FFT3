@@ -635,16 +635,17 @@ bit-reversed), so we can do everything out of order.
       #C(15.0d0 0.0d0) #C(20.0d0 0.0d0) #C(-8.881784197001252d-16 0.0d0))
 
 If we remove the imaginary portions (which are all 0) and round some
-numerical errors away, we find #(1 2 3 9 10 15 20 0), this time with only
-one element of padding: 1\*10^6 + 2\*10^5 + 3\*10^4 + 9\*10^3 +
-10\*10^2, etc.  If we take care of the carries, we find 1240170, which
-is indeed 1005 \* 1234.
+numerical errors away, we find #(1 2 3 9 10 15 20 0), this time with
+only one element of padding; this value represents 1\*10^6 + 2\*10^5 +
+3\*10^4 + 9\*10^3 + 10\*10^2, etc.  If we take care of the carries, we
+find 1240170, which is indeed 1005 \* 1234.
 
 Of course, we can also exploit the fact that the input and output are
 all reals to use `rfft` and `rifft`.  We can do even better with
-`%2rfft`, which performs 2 real fft at at the time.  However, if we do
-that, we hae to use in-order transforms.  It's a trade off, and even
-if we're only concerned with computation times, the right answer
+`%2rfft`, which performs 2 real fft at the same time.  However, if we
+do that, we have to use in-order transforms and perform the
+element-wise multiplication ourselves.  It's a trade off, and even
+when we're only concerned with computation times, the right answer
 depends on a lot of variables.
 
     ;; the results are returned one after the other in a single
