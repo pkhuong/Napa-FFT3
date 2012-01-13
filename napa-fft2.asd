@@ -14,6 +14,7 @@
                (:file "bit-reversal")
 
                (:file "interface")
+               (:file "easy-interface")
                (:file "windowing")
 
                (:file "test-support")
