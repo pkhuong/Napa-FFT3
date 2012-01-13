@@ -166,4 +166,3 @@
                      (setf (aref dst j) (realpart x)
                            (aref dst (1+ j)) (imagpart x))))))
       dst)))
-
