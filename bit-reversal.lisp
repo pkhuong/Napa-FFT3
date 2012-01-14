@@ -121,12 +121,12 @@
                `(progn
                   (let ((a (aref vec (+ middle-1 ,a)))
                         (b (aref vec (+ middle-2 ,b))))
-                    (setf (aref vec (+ middle-2 ,a)) b
-                          (aref vec (+ middle-1 ,b)) a))
+                    (setf (aref vec (+ middle-1 ,a)) b
+                          (aref vec (+ middle-2 ,b)) a))
                   (let ((a (aref vec (+ middle-2 ,a)))
                         (b (aref vec (+ middle-1 ,b))))
-                    (setf (aref vec (+ middle-1 ,a)) b
-                          (aref vec (+ middle-2 ,b)) a))))))))
+                    (setf (aref vec (+ middle-2 ,a)) b
+                          (aref vec (+ middle-1 ,b)) a))))))))
 
 (defun generate-large-reversal (outer inner)
   (let ((to-swap '()))
@@ -177,7 +177,7 @@
 (defun gen-bit-reversal (n el-type)
   el-type
   (assert (power-of-two-p n))
-  (if (<= n *max-reversal-radix*)
+  (if (<= n *max-small-bit-reverse*)
       (emit-small-bit-reverse n)
       (let* ((width (lb n))
              (outer (min *outer-width*
