@@ -603,7 +603,10 @@ can stick to out-of-order transforms:
 
 ### Windowing chunks of long signals
 
-Let's filter an anonymous artist JB out of one of his songs.
+Let's filter an anonymous artist JB out of one of his songs.  That's
+actually a very difficult task, especially for example code: voices
+tend to have rich harmonics, and span a wide range of frequencies.
+What we can do is filter every frequency higher than a certain point.
 
 First, I use sox to convert the input (in wave format) to mono s32:
 
@@ -628,10 +631,6 @@ I can now read the first minute and convert it to doubles:
                                                     (* 44100 60)))
     *NEVER*
 
-"Normal" (fundamental) voice frequencies range between 85-180 Hz for
-males, and 165-255 Hz for females.  Our artist sometimes sounds
-androgynous and hits relatively high frequencies at times, so we'll
-try and filter out the 120-360 Hz range.
 
 We could just transform the whole 60 seconds at once, and revert it,
 but that'd be a lot of work.  Instead, we'll chunk it into short
@@ -640,10 +639,7 @@ We'll simplify things and use chunks of 4096 samples (slightly less
 than 4410 samples).
 
 Some fiddling around lets us discover than JB seems to sing around 260
-Hz and higher.  Due to the nice harmonics in human voices, we can't
-easily pin point a maximal frequency; instead, we'll cut off
-everything that's above 260 Hz.
-
+Hz and higher, so we'll cut off frequencies from 260 Hz and up.
 
     CL-USER> (defparameter *jb-filter*
                (napa-fft:window-vector (lambda (i n)
@@ -684,27 +680,36 @@ The filtering process loses a lot of volume.  We can recover that by
 scaling the output so that its 2-norm is the same.  There's also an
 annoying noise: that's an artefact of the way we cut our signal up and
 pretend each chunk is periodic.  The latter problem is what the
-windowing support attempts to address. We can simply call
-WINDOWED-FFT, with a triangular window centered at the middle of the
-chunk as a quick patch.  `filter-chunks` becomes:
+windowing support attempts to address.
+
+Instead of filtering each chunk independently, we'll use a triangular
+window, and overlap the chunks so that each sample is processed
+exactly twice.  The triangular window ensures that the two weights
+assigned to each sample adds to 1.  `windowed-fft` takes care of
+applying the triangular window to the input, and a scaling factor is
+applied so that the energy in the output is _half_ that in the input.
+The result of the thunks are then added together, with the same
+overlap as the input.  `filter-chunks` becomes:
 
     (defun filter-chunks (vector filter)
       (declare (type napa-fft:real-sample-array vector filter))
       (let* ((destination (make-array (length vector)
-                                      :element-type 'napa-fft:complex-sample))
+                                      :element-type 'napa-fft:complex-sample
+                                      :initial-element (complex 0d0)))
              (chunk-size  (length filter))
+             (half-size   (truncate chunk-size 2))
              (chunk       (make-array chunk-size
                                       :element-type 'napa-fft:complex-sample))
              (filter      (napa-fft:bit-reverse filter)))
         (declare (optimize speed))
-        (loop for i below (length vector) by chunk-size
+        (loop for i below (length vector) by half-size
               for end = (min (length vector) (+ i chunk-size))
               do (fill chunk (complex 0d0))
                  (loop for dst upfrom 0
                        for src from i below end
                        do (setf (aref chunk dst) (complex (aref vector src))))
                  (let ((old-energy (energy chunk)))
-                   (napa-fft:windowed-fft chunk (truncate chunk-size 2)
+                   (napa-fft:windowed-fft chunk half-size
                                           chunk-size
                                           :window-fn 'napa-fft:triangle
                                           :dst chunk :in-order nil)
@@ -712,15 +717,17 @@ chunk as a quick patch.  `filter-chunks` becomes:
                                   :dst chunk :in-order nil
                                   :window filter)
                    (let* ((new-energy (energy chunk))
-                          (scale      (sqrt (/ old-energy new-energy))))
+                          (scale      (* .5d0 (sqrt (/ old-energy
+                                                       new-energy)))))
                      (declare (type double-float scale))
-                     (map-into chunk (lambda (x)
-                                       (* x scale))
-                               chunk))
-                   (replace destination chunk :start1 i :end1 end))
-              finally (return destination))))
+                     (loop for src upfrom 0
+                         for dst from i below end
+                         do (incf (aref destination dst)
+                                  (* scale (aref chunk src))))))
+          finally (return destination))))
 
-
+When I play that back, I only hear high quality percussions and little
+to no artefacts.
 
 ### Multiplying integers or polynomials via a convolution
 
