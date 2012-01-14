@@ -118,21 +118,19 @@
           (setf (aref vec len)
                 (compile
                  nil
-                 `(lambda (vec start tmp startt)
+                 `(lambda (vec start)
                     (declare (type (simple-array ,eltype 1)
-                                   vec tmp)
-                             (type index start startt)
-                             (ignorable vec start
-                                        tmp startt)
+                                   vec)
+                             (type index start)
+                             (ignorable vec start)
                              ,*optimization-policy*)
-                    ,(gen-bit-reversal n eltype)
+                    ,(gen-bit-reversal n)
                     vec))))))))
 
 (defun get-reverse (n &optional (eltype 'complex-sample))
-  (let ((tmp (make-array n :element-type eltype))
-        (fun (%ensure-reverse n eltype)))
+  (let ((fun (%ensure-reverse n eltype)))
     (lambda (vec)
-      (funcall fun vec 0 tmp 0))))
+      (funcall fun vec 0))))
 
 (defvar *twiddle-lock* (sb-thread:make-mutex))
 (defvar *forward-twiddle* nil)
@@ -173,7 +171,6 @@
                               scale
                               nil
                               size))
-        (tmp     (make-array size :element-type 'complex-sample))
         (reversal (and in-order
                        (%ensure-reverse size))))
     (declare (type function fft)
@@ -185,10 +182,10 @@
           (forward
            (lambda (vec)
              (funcall fft vec 0 twiddle)
-             (funcall reversal vec 0 tmp 0)))
+             (funcall reversal vec 0)))
           (t
            (lambda (vec)
-             (funcall reversal vec 0 tmp 0)
+             (funcall reversal vec 0)
              (funcall fft vec 0 twiddle))))))
 
 (defun get-windowed-fft (size window-type
@@ -202,7 +199,6 @@
                               scale
                               window-type
                               size))
-        (tmp     (make-array size :element-type 'complex-sample))
         (reversal (and in-order
                        (%ensure-reverse size))))
     (declare (type function fft)
@@ -214,8 +210,8 @@
           (forward
            (lambda (vec window)
              (funcall fft vec 0 window 0 twiddle)
-             (funcall reversal vec 0 tmp 0)))
+             (funcall reversal vec 0)))
           (t
            (lambda (vec window)
-             (funcall reversal vec 0 tmp 0)
+             (funcall reversal vec 0)
              (funcall fft vec 0 window 0 twiddle))))))
