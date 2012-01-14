@@ -106,27 +106,15 @@
           (let* ((rj (bit-reverse-integer j outer))
                  (a  (+ (ash i  total) j))
                  (b  (+ (ash rj total) ri)))
-            (when (<= a b)
-              (push (cons a b)
-                  to-swap))))))
+            (push (cons a b) to-swap)))))
     `(progn
        ,@(loop
            for (a . b) across (z-order-words to-swap)
            collect
-           (if (= a b)
-               `(let ((a (aref vec (+ middle-1 ,a)))
-                      (b (aref vec (+ middle-2 ,a))))
-                  (setf (aref vec (+ middle-2 ,a)) b
-                        (aref vec (+ middle-1 ,a)) a))
-               `(progn
-                  (let ((a (aref vec (+ middle-1 ,a)))
-                        (b (aref vec (+ middle-2 ,b))))
-                    (setf (aref vec (+ middle-1 ,a)) b
-                          (aref vec (+ middle-2 ,b)) a))
-                  (let ((a (aref vec (+ middle-2 ,a)))
-                        (b (aref vec (+ middle-1 ,b))))
-                    (setf (aref vec (+ middle-2 ,a)) b
-                          (aref vec (+ middle-1 ,b)) a))))))))
+           `(let ((a (aref vec (+ middle-1 ,a)))
+                  (b (aref vec (+ middle-2 ,b))))
+              (setf (aref vec (+ middle-1 ,a)) b
+                    (aref vec (+ middle-2 ,b)) a))))))
 
 (defun generate-large-reversal (outer inner)
   (let ((to-swap '()))
