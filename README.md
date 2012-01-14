@@ -609,10 +609,10 @@ can stick to out-of-order transforms:
 
 ### Windowing chunks of long signals
 
-Let's filter an anonymous artist JB out of one of his songs.  That's
-actually a very difficult task, especially for example code: voices
-tend to have rich harmonics, and span a wide range of frequencies.
-What we can do is filter every frequency higher than a certain point.
+Let's filter Justin Bieber out of one of his songs.  That's actually a
+very difficult task, especially for example code: voices tend to have
+rich harmonics, and span a wide range of frequencies.  What we can do
+is filter every frequency higher than a certain point.
 
 First, I use sox to convert the input (in wave format) to mono s32:
 
@@ -644,8 +644,8 @@ periods, say one tenth of a second, and filter each chunk separately.
 We'll simplify things and use chunks of 4096 samples (slightly less
 than 4410 samples).
 
-Some fiddling around lets us discover than JB seems to sing around 260
-Hz and higher, so we'll cut off frequencies from 260 Hz and up.
+Some fiddling around lets us discover than Bieber seems to sing around
+260 Hz and higher, so we'll cut off frequencies from 260 Hz and up.
 
     CL-USER> (defparameter *jb-filter*
                (napa-fft:window-vector (lambda (i n)
