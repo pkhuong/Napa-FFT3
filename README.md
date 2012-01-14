@@ -291,7 +291,10 @@ coefficients in _vec_.
 
 _vec_ is converted, if necessary, to a simple array of complex
 doubles.  Its inverse DFT is then re-expressed, destructively as a
-half-size DFT of complex doubles.
+half-size DFT of complex doubles.  The procedure can only work
+correctly when the output is purely real: even if we're only
+interested in the real component, it will be distorted by any non-zero
+imaginary value.
 
 Example:
 
@@ -481,7 +484,9 @@ instead:
 
 The result is the same, but (once the routines are compiled), each
 FFT/IFFT is about twice as fast.  Mind the fact that rifft is
-destructive on its input, however.
+destructive on its input, however.  It also only works when the output
+is purely real; any non-zero imaginary component will warp the
+real-valued output.
 
 #### Filter frequencies out during the IFFT
 
