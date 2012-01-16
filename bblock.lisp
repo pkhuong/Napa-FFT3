@@ -103,8 +103,7 @@
                           forms-acc)
                     (setf progn-acc nil)))))
       (loop for binding in bindings
-            do
-               (etypecase (car binding)
+            do (etypecase (car binding)
                  (null
                   (push (third binding) progn-acc))
                  ((cons * null)
@@ -128,6 +127,7 @@
                                                 types names)
                                       (ignorable ,@names)))
                           forms-acc)))))
+      (flush)
       (let ((acc body))
         (dolist (form forms-acc acc)
           (setf acc (append form (list acc))))))))
