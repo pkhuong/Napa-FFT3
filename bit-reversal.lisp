@@ -12,9 +12,30 @@
          `(rotatef (aref vec (+ start ,i))
                    (aref vec (+ start ,rev))))))
 
-(defun z-order-words (pairs)
+;; another way to z-order the bottom bits:
+(defun generate-outward-seq (seed most least)
+  (let ((values (make-array (* least least)
+                            :adjustable t
+                            :fill-pointer 0)))
+    (labels ((rec (seed most least)
+               (if (plusp least)
+                   (dotimes (i 2)
+                     (dotimes (j 2)
+                       (rec (+ seed
+                               (* i most)
+                               (* j least))
+                            (ash most 1)
+                            (ash least -1))))
+                   (vector-push-extend seed values))))
+      (rec seed most least)
+      (make-array (length values)
+                  :initial-contents values))))
+
+(defun z-order-words (pairs &optional (mask -1))
   (flet ((interleave (x y)
-           (let ((acc 0)
+           (let ((x   (logand x mask))
+                 (y   (logand y mask))
+                 (acc 0)
                  (mul 0))
              (dotimes (i 32 acc)
                (let ((x (ldb (byte 1 i) x))
@@ -45,7 +66,8 @@
               (push (cons a b) to-swap))))))
     `(progn
        ,@(loop
-           for (a . b) across (z-order-words to-swap)
+           for (a . b) across (z-order-words to-swap
+                                             (1- (ash 1 outer)))
            collect `(let ((a (aref vec (+ middle ,a)))
                           (b (aref vec (+ middle ,b))))
                       (setf (aref vec (+ middle ,a)) b
@@ -63,7 +85,8 @@
             (push (cons a b) to-swap)))))
     `(progn
        ,@(loop
-           for (a . b) across (z-order-words to-swap)
+           for (a . b) across (z-order-words to-swap
+                                             (1- (ash 1 outer)))
            collect
            `(let ((a (aref vec (+ middle-1 ,a)))
                   (b (aref vec (+ middle-2 ,b))))
@@ -76,7 +99,8 @@
       (let ((ri (bit-reverse-integer i inner)))
         (when (<= i ri)
           (push (cons i ri) to-swap))))
-    (let* ((ordered (z-order-words to-swap))
+    (let* ((ordered (z-order-words to-swap
+                                   (1- (ash 1 (ceiling inner 2)))))
            (data (make-array (* 2 (length ordered))
                              :element-type '(unsigned-byte 32))))
       (loop for i upfrom 0 by 2
