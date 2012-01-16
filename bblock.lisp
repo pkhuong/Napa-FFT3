@@ -84,17 +84,56 @@
                     ,maxlive)
       '(vec))))
 
+(defun emit-bblock (bindings body)
+  (let ((progn-acc '())
+        (let*-acc  '())
+        (forms-acc '()))
+    (flet ((flush ()
+             (cond (let*-acc
+                    (let ((bindings (mapcar #'first let*-acc)))
+                      (push `(let* ,(nreverse let*-acc)
+                               (declare (ignorable
+                                         ,@(nreverse bindings)))
+                               ,@(nreverse progn-acc))
+                            forms-acc))
+                    (setf let*-acc nil
+                          progn-acc nil))
+                   (progn-acc
+                    (push `(progn ,@(nreverse progn-acc))
+                          forms-acc)
+                    (setf progn-acc nil)))))
+      (loop for binding in bindings
+            do
+               (etypecase (car binding)
+                 (null
+                  (push (third binding) progn-acc))
+                 ((cons * null)
+                  (destructuring-bind ((name) (type) form)
+                      binding
+                    (push `(,name (the ,type
+                                       ,(if progn-acc
+                                            `(progn
+                                               ,@(nreverse progn-acc)
+                                               ,form)
+                                            form)))
+                          let*-acc)))
+                 (t
+                  (flush)
+                  (destructuring-bind (names types form)
+                      binding
+                    (push `(multiple-value-bind ,names
+                               ,form
+                             (declare ,@(mapcar (lambda (type name)
+                                                  `(type ,type ,name))
+                                                types names)
+                                      (ignorable ,@names)))
+                          forms-acc)))))
+      (let ((acc body))
+        (dolist (form forms-acc acc)
+          (setf acc (append form (list acc))))))))
+
 (defmacro bblock ((&rest bindings) &body body)
-  (let ((body `(locally ,@body)))
-    (loop for (names types form) in (reverse bindings)
-          do (setf body
-                   `(multiple-value-bind ,names ,form
-                        (declare ,@(mapcar (lambda (type name)
-                                             `(type ,type ,name))
-                                           types names)
-                                 (ignorable ,@names))
-                      ,body))
-          finally (return body))))
+  (emit-bblock bindings `(locally ,@body)))
 
 (defstruct load-op
   var idx)
