@@ -55,7 +55,7 @@
                  `(let ((a ,(funcall builder1 a))
                         (b ,(funcall builder2 b)))
                     (setf ,(funcall builder1 a) b
-                          ,(funcall builder2 b) b)))))
+                          ,(funcall builder2 b) a)))))
            (let ((temps (make-hash-table))
                  (pairs (sort pairs #'< :key #'car)))
              (map nil (lambda (pair)
