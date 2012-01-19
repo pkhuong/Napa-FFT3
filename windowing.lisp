@@ -51,13 +51,16 @@
   (cosine-series i n 0.35875f0 0.48829f0 0.14128f0 0.01168f0))
 
 (let ((cache (make-hash-table :test 'equalp)))
-  (defun window-vector (function n)
-    (or (gethash (list function n) cache)
-        (setf (gethash (list function n) cache)
-              (let ((v (make-sequence '(simple-array double-float (*)) n)))
-                (dotimes (i n v) 
-                  (setf (aref v i) 
-                        (float (funcall function i n) 0.0d0))))))))
+  (defun window-vector (function n &key bit-reverse)
+    (let ((key (list function n bit-reverse)))
+      (or (gethash key cache)
+          (setf (gethash key cache)
+                (let ((v (make-sequence '(simple-array double-float (*)) n)))
+                  (dotimes (i n (if bit-reverse
+                                    (bit-reverse v v)
+                                    v))
+                    (setf (aref v i) 
+                          (float (funcall function i n) 0.0d0)))))))))
 
 (defun clip-in-window (x start end) (max start (min x end)))
 
