@@ -17,7 +17,7 @@
            "COSINE-SERIES" "BLACKMAN-HARRIS"
            "WINDOW-VECTOR"
 
-           "WINDOWED-FFT"
+           "WINDOWED-FFT" "WINDOWED-IFFT"
 
            "*RFFT-TWIDDLES*" "*RIFFT-TWIDDLES*"
            "%2RFFT"
