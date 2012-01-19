@@ -1,6 +1,6 @@
 (in-package "NAPA-FFT.GEN")
 
-(defvar *swap-block-size* 16)
+(defvar *swap-block-size* 1)
 
 (defun emit-swaps-same (pairs builder)
   (flet ((emit (pairs)
