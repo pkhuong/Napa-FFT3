@@ -1,8 +1,5 @@
 (in-package "NAPA-FFT.IMPL")
 
-(defvar *scratch* nil)
-(defvar *double-scratch* nil)
-
 (declaim (inline copy-or-replace))
 (defun copy-or-replace (src dst)
   (cond ((eql src dst) dst)
@@ -17,15 +14,9 @@
   (assert (>= (length vec) size))
   (let* ((dst (copy-or-replace vec dst))
          (n   size)
-         (scratch (or *double-scratch*
-                      (make-array n :element-type 'double-float)))
          (fun (%ensure-reverse n 'real-sample)))
-    (declare (type real-sample-array scratch))
     (assert (>= (length dst) size))
-    (when (< (length scratch) n)
-      (setf scratch (make-array n :element-type 'double-float)
-            *double-scratch* scratch))
-    (funcall fun dst 0 scratch 0)))
+    (funcall fun dst 0)))
 
 (defun %bit-reverse-complex (vec dst size)
   (declare (type complex-sample-array vec)
@@ -34,15 +25,9 @@
   (assert (>= (length vec) size))
   (let* ((dst (copy-or-replace vec dst))
          (n   size)
-         (scratch (or *scratch*
-                      (make-array n :element-type 'complex-sample)))
          (fun (%ensure-reverse n)))
-    (declare (type complex-sample-array scratch))
     (assert (>= (length dst) size))
-    (when (< (length scratch) n)
-      (setf scratch (make-array n :element-type 'complex-sample)
-            *scratch* scratch))
-    (funcall fun dst 0 scratch 0)))
+    (funcall fun dst 0)))
 
 (defun bit-reverse (vec &optional dst (size (length vec)))
   (etypecase vec
