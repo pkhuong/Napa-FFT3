@@ -21,7 +21,7 @@
            "*RFFT-TWIDDLES*" "*RIFFT-TWIDDLES*"
            "%2RFFT"
            "RFFT" "RIFFT"
-           "WINDOWED-RFFT"))
+           "WINDOWED-RFFT" "WINDOWED-RIFFT"))
 
 (defpackage "NAPA-FFT.SUPPORT"
   (:use "CL" "SB-EXT" "NAPA-FFT")
