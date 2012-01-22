@@ -63,6 +63,7 @@ The core of the "easy" interface consists of:
  * `NAPA-FFT:IFFT`: inverse DFT
  * `NAPA-FFT:BIT-REVERSE`: bit-reversal routine
  * `NAPA-FFT:WINDOWED-FFT`: windowed forward DFT
+ * `NAPA-FFT:WINDOWED-IFFT`: windowed inverse DFT
 
 ### FFT
 
@@ -225,6 +226,8 @@ Example:
 
 TODO. It's the same as Bordeaux FFT.
 
+### WINDOWED-IFFT
+
 Real Interface
 --------------
 
@@ -233,9 +236,12 @@ real (not complex) data:
 
  * `NAPA-FFT:RFFT` performs in-order real-input FFTs.
  * `NAPA-FFT:RIFFT` performs in-order real-output inverse FFTs.
- * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input FFTs.
+ * `NAPA-FFT:WINDOWED-RFFT` performs windowed in-order real-input
+   FFTs.
+ * `NAPA-FFT:WINDOWED-RIFFT` performs windowed in-order real-output
+   inverse FFTs.
 
-There are convenient because the result is a vector of real values,
+These are convenient because the result is a vector of real values,
 but also offer strong performance improvements (almost halving
 computation times) for in-order, out-of-place, transforms, at the
 expense of a little precision.
@@ -304,6 +310,10 @@ Example:
 ### WINDOWED-RFFT
 
 Same.
+
+### WINDOWED-RIFFT
+
+...
 
 Examples
 --------
@@ -383,7 +393,7 @@ the real world).  E is then 2 tones higher, at `(* 262 (expt 2 (/ 4 12)))`
 ~= 330 Hz, and G a tone and a half higher again, `(* 330 (expt 2 (/ 3 12)))`
 ~= 392 Hz.
 
-Thus, to head the boring middle C/E/G chord, we need energy at 262,
+Thus, to hear the boring middle C/E/G chord, we need energy at 262,
 330 and 392 Hz; note how the energy is 1/3 at each point, so that the
 total comes to 1.
 
@@ -493,15 +503,17 @@ real-valued output.
 
 We can do this directly, by filtering during the inverse FFT.
 Replacing most values with 0 and leaving the rest along is equivalent
-to multiplying by 0 or 1.  Usually, we want a more gradual dampening,
-and the filter will also have intermediate values.
+to multiplying by 0 or 1 (usually, we want a more gradual dampening,
+and the filter will also have fractional values).
 
+    CL-USER> (defun central-octave-filter (i n)
+               (if (<= (round (* 262 n) 44100)
+                       i
+                       (round (* 524 n) 44100))
+                   1 0))
+    CENTRAL-OCTAVE-FILTER
     CL-USER> (defparameter *filter*
-               (napa-fft:window-vector (lambda (i n)
-                                         (if (<= (round (* 262 n) 44100)
-                                                 i
-                                                 (round (* 524 n) 44100))
-                                             1 0))
+               (napa-fft:window-vector 'central-octave-filter
                                        65536))
     *FILTER*
     CL-USER> (defparameter *filtered-noisy-chord-freq*
@@ -517,18 +529,14 @@ can compute the filter once, and easily apply it directly.
 
 Another advantage is that we can bit-reverse (permute) the filter
 instead of bit-reversing after the FFT and before the IFFT.  Again,
-the final result is the same, but we only bit-reverse the constant
+the final result is the same, but we only bit-reverse the (cached)
 filter vector instead of many frequency domain vector.
 
-    CL-USER> (defparameter *bit-reversed-filter* (napa-fft:bit-reverse *filter*))
-    *BIT-REVERSED-FILTER*
-    ;; neither the fft or the ifft is in order; the filter itself is
-    ;; out of order
     CL-USER> (emit-raw32-file "~/napa-fft3/example/octave-chord3.s32"
-                              (napa-fft:ifft 
+                              (napa-fft:windowed-ifft 
                                (napa-fft:fft *noisy-chord* :in-order nil)
-                               :in-order nil
-                               :window *bit-reversed-filter*))
+                               :window-fn 'central-octave-filter
+                               :in-order nil))
     "~/napa-fft3/example/octave-chord3.s32"
 
 ### Filter low-amplitude noise out
@@ -612,7 +620,7 @@ can stick to out-of-order transforms:
 Let's filter Justin Bieber out of one of his songs.  That's actually a
 very difficult task, especially for example code: voices tend to have
 rich harmonics, and span a wide range of frequencies.  What we can do
-is filter every frequency higher than a certain point.
+is filter every frequency higher than a certain limit.
 
 First, I use sox to convert the input (in wave format) to mono s32:
 
@@ -740,9 +748,9 @@ to no artefacts.
 So far, we've been using point-wise multiplication in the frequency
 domain to filter frequencies out.  We can also see it as a nice way to
 execute convolutions.  We can use this to implement fast
-multiplication of polynomials, or integer, with the right encoding.
-Please don't use it for bignum multiplication without checking the
-precision of the transforms.
+multiplication of polynomials or of integers, with the right encoding.
+However, please don't use it for bignum multiplications without
+checking the precision of the transforms.
 
 Let's multiply 1005 by 1234. 1005 is 1\*10^3 + 0\*10^2 + 0\*10^1 +
 5\*10^0, which we can encode, as a vector: #(1 0 0 5 0 0 0 0) (note
@@ -795,3 +803,258 @@ depends on a lot of variables.
     #(0.9999999999999991d0 2.0d0 2.9999999999999964d0 9.0d0 10.0d0 15.0d0
       20.000000000000004d0 -8.881784197001252d-16)
 
+Low-level Interface
+-------------------
+
+These functions directly expose the runtime code generator to let you
+avoid all the argument-list parsing overhead in the regular interface,
+and hoist the lookups outside performance-critical code.  All the
+generators are memoised in specials, but accesses are protected by
+mutexes (and are atomic on SBCL anyway), so there should not be any
+threading issue.
+
+The low-level interface consists of the three following generators;
+they don't offer any functionality absent from the easy interface, but
+make it possible to dispatch once and subsequently call the right
+function directly.
+
+ * `NAPA-FFT:GET-FFT`: 
+ * `NAPA-FFT:GET-WINDOWED-FFT`
+ * `NAPA-FFT:GET-REVERSE`
+ 
+The previous three generators actually depend on these memoised
+generators, which allow even lower-level accesses.
+
+ * `NAPA-FFT:%ENSURE-FFT`
+ * `NAPA-FFT:%ENSURE-TWIDDLES`
+ * `NAPA-FFT:%ENSURE-REVERSE`
+
+The functions returned by these generators perform virtually no error
+checking; make sure to use them correctly.
+
+### GET-FFT
+
+Syntax: `get-fft size &key forward scale in-order => fft-function`.
+
+Arguments and Values:
+
+ * _size_: size of the FFTs to perform (must be a power of two);
+ * _forward_: whether the transform is forward (t, default) or inverse
+   (nil);
+ * _scale_: whether the transform should be unscaled (nil, 1), scaled
+   by _1/size_ (t, :inv) or by _1/sqrt(size)_ (sqrt, :sqrt).  Defaults
+   to nil for forward transforms and t for inverse ones.
+ * _in-order_: whether the transform should be in-order (default, t),
+   or have out-of-order output for forward FFTs and out-of-order input
+   for inverse FFTs (nil).
+ * _fft-function_: a one-argument function that performs an in-place
+   transform on its single argument (a complex-sample-array).
+
+`GET-FFT` returns a function that computes the DFT of the first _size_
+elements of its single argument.  That argument must be a
+complex-sample-array, and will be transformed in-place.
+
+Example:
+
+    CL-USER> (let ((fft (napa-fft:get-fft 8))
+                   (data (make-array 8 :element-type 'napa-fft:complex-sample
+                                       :initial-element (complex 1d0 0d0))))
+               ;; data transformed in-place
+               (funcall fft data))
+    #(#C(8.0d0 0.0d0) #C(0.0d0 0.0d0) #C(0.0d0 0.0d0) #C(0.0d0 0.0d0)
+      #C(0.0d0 0.0d0) #C(0.0d0 0.0d0) #C(0.0d0 0.0d0) #C(0.0d0 0.0d0))
+
+### GET-WINDOWED-FFT
+
+Syntax: `get-windowed-fft size window-type &key forward scale in-order => fft-function`
+
+Arguments and Values:
+
+ * _size_: size of the FFTs to perform (must be a power of two);
+ * _window-type_: whether the window vector is a simple-array of
+   real-sample (float, real-sample) or of complex-sample (complex,
+   complex-sample)
+ * _forward_: whether the transform is forward (t, default) or inverse
+   (nil);
+ * _scale_: whether the transform should be unscaled (nil, 1), scaled
+   by _1/size_ (t, :inv) or by _1/sqrt(size)_ (sqrt, :sqrt).  Defaults
+   to nil for forward transforms and t for inverse ones.
+ * _in-order_: whether the transform should be in-order (default, t),
+   or have out-of-order output for forward FFTs and out-of-order input
+   for inverse FFTs (nil).
+ * _function_: a two-argument function that performs an in-place
+   transform on its first argument (a complex-sample-array), after
+   multiplying it by its second argument (a real-sample-array or a
+   complex-sample-array, depending on _window-type_).
+
+`GET-WINDOWED-FFT` returns a function that computes the DFT of the
+first _size_ elements of its first argument.  Conceptually, this first
+argument is first multiplied element-wise by the second argument (the
+window); in practice, this is executed as part of the FFT.  
+
+For inverse FFTs, the multiplication happens after the bit-reversal;
+the window should thus itself be bit-reversed.
+
+
+### GET-REVERSE
+
+Syntax: `get-reverse n &optional eltype => reversal-function`
+
+Arguments and Values:
+
+ * _n_: size of the vector (simple-array) to bit-reverse; must be a
+   power of two.
+ * _eltype_: element type of the vector, complex-sample (default) or
+   real-sample.
+ * _reversal-function_: function that perform an in-place bit-reversal
+   permutation of the first _n_ elements of its single argument, a
+   simple-array with element-type _eltype_.
+   
+`GET-REVERSE` returns a function that perform an in-place bit-reversal
+of the first _size_ elements of its single argument.
+
+### %ENSURE-FFT
+
+Syntax: `%ensure-fft direction scaling windowing n => fft-function`
+
+Arguments and Values:
+
+ * _direction_: whether to perform a forward (1 or :fwd) or inverse (-1,
+   :inv or :bwd) transformation.
+ * _scaling_: whether to perform an unscaled transform (nil, 1), to
+   scale by _1/n_ (t, :inv) or by _1/sqrt(n)_ (sqrt, :sqrt).
+ * _windowing_: whether to first perform an element-wise
+   multiplication by a real-sample-array (float, real-sample), by a
+   complex-sample-array (complex, complex-sample) or no multiplication
+   at all (nil).
+ * _n_: size of the transform.
+ * _fft-function_: if _windowing_ is false, a two-argument function
+   that performs an in-place transformation of the _n_ elements of its
+   first argument, starting at its second argument.  If _windowing_ is
+   true, there are two additional arguments, the window vector and the
+   start index. Finally, the last argument is an appropriately-sized
+   vector of twiddle factors.
+
+`%ENSURE-FFT` is similar to `GET-FFT` or `GET-WINDOWED-FFT`, except
+that the start indices may be specified.
+
+### %ENSURE-TWIDDLES
+
+Syntax: `%ensure-twiddles n forwardp => twiddle-vector`
+
+Argument and Values:
+
+ * _n_: size of the transform to get a twiddle vector for; must be a
+   power of two.
+ * _forwardp_: whether the transform is a forward one (t) or inverse
+   (nil).
+ * _twiddle-vector_: complex-sample-array of twiddle factors for a
+   split-radix Cooley-Tukey FFT of size at least _n_.
+
+`%ENSURE-TWIDDLES` computes and caches vectors that should be passed
+as the last argument of the function returned by `%ENSURE-FFT`.  The
+structure of the vectors is such that a vector appropriate for a
+transform of size _n_ is also appropriate for all smaller sizes (with
+the same direction).
+
+### %ENSURE-REVERSE
+
+Syntax `%ensure-reverse n &optional eltype => reversal-function`
+
+Argument and Values:
+
+ * _n_: size of the vector (simple-array) to bit-reverse; must be a
+   power of two.
+ * _eltype_: element type of the vector, complex-sample (default) or
+   real-sample.
+ * _reversal-function_: function that perform an in-place bit-reversal
+   permutation of _n_ elements of its single argument, a simple-array
+   with element-type _eltype_, starting at the index given by its
+   second argument.
+
+`%ENSURE-REVERSE` is exactly like `GET-REVERSE`, but allows the user
+to specify the starting index of the vector to bit-reverse.
+
+Implementation
+--------------
+
+Napa-FFT3 is based on an in-place, out-of-order, split-radix
+Cooley-Tukey FFT algorithm.  Split-radix is relatively simple, and
+achieve operation counts very close (within a couple percents) to the
+minimum known so far.  Doing it out of order simplifies the transform
+code a lot; this way, all the accesses are naturally in streaming
+order, at each level of the recursion.  Moreover, by executing the
+recursion depth-first rather than breadth-first, we obtain very good
+cache locality.  Out-of-orderness also makes it much easier to perform
+the transforms in-place; an in-place transform can hope to fit nearly
+twice as large inputs in cache as an out-of-place one.
+
+The split-radix algorithm has a very short recursive definition;
+practically however, we want larger base cases than the strict
+minimum.  Rather than depending on hand-written specialised base
+cases, Napa-FFT3 has a specialised compiler that turns the execution
+trace for a given FFT into straight-line code.  This way, we maintain
+the near-optimal operation count, especially since the code to
+multiply by twiddle factors can be optimised for "nice" constants
+(e.g. 1, i,sqrt(i) or sqrt(-i)).  The specialised compiler takes care
+of spilling values to the data vector by using Belady's algorithm.
+This will tend to perform a lot better than common spilling logic
+(e.g. SBCL's coloring-based algorithm), and the spills are executed to
+correctly-aligned addresses, following a cache-friendly layout.
+
+This, along with specialised recursive steps for each size, gives us
+high-performance out-of-order transforms; given that much of the
+complexity in FFTs comes from ensuring the data are in natural order,
+it's not surprising that simple code can achieve runtimes comparable
+or lower than sophisticated code like FFTW.
+
+More surprising might be the fact that bit-reversals are now so easy
+to design so they executed quickly as well.  Much of the runtime in
+Napa-FFT2 was caused by the transposition steps.  At first sight, a
+bit-reversal is even more complicated.  However, bit-reversals have
+the nice property that they only consist of swaps: they can be
+easily be executed in-place, by swapping each index with its
+bit-reversed value.  This is only true for transpose of square
+matrices (FFT sizes that are even powers of two).
+
+Historically, on cache-ful computers, the issue with bit-reversal has
+been one of aliasing in low-associativity caches: the swap pattern
+involves addresses that tend to be mapped to the same cache lines.
+The workarounds involve some sort of software buffering, either in
+registers or in an auxiliary array, to supplement the caches.
+
+Nowadays, however, computer architects have more transistors than they
+know what to do with, so caches are large and have high associativity
+(at least 4-way at the L2 or L3 level on both AMD and Intel chips).
+Since we're mostly conerned with bit-reversing complex-sample-vectors,
+each element is a pair of double-floats, and only 4 fit in each cache
+line.  In this case, as [Zhang and Zhang 99] point out, the
+associativity is large enough not to necessitate any software
+buffering!
+
+The novel part seems to be the traversal order.  [Zhang and Zhang 99]
+point out that blocking helps with locality, and a few older work
+[Elster, Rutkowska] have described how bit-reversal swaps could be
+generated recursively.  The blocking described in [Zhang and Zhang 99]
+is very much cache-aware, and must be explicitly structured to take
+advantage of cache levels and TLBs.  It seems that all the
+recursively-generated swaps generate from the outside in; that is, the
+leaf of the recursion have all the bits fixed except for the middle
+ones.  If we wish to enhance locality, we should fix the middle bit
+first, and, at the leavse, have the outermost (i.e. most significant,
+but also least significant) bits vary.  This way, we implicitly get
+blocking for any cache line size (given sufficient associativity), but
+also for fully-associative TLBs.
+
+Another way to see this is that each swap tends to be between vastly
+different indices (bit reversal is bad for locality).  One classic way
+to deal with this is to sort the swaps in Z-order, by interleaving
+bits from each swapped index.  Unfortunately, with bit reversal, this
+is equivalent to recursing from the outside.  Instead, we can sort the
+least significant half of the indices in Z-order, and that will make
+the outermost bit vary between adjacent swaps.
+
+Obviously, determining this ordering at runtime is a lot of work.
+Instead, specialised leaf routines that handle changing, e.g., the top
+and bottom -most three bits (in the right traversal order) are called
+with the middle bits found in a pre-sorted vector.
