@@ -1056,5 +1056,5 @@ the outermost bit vary between adjacent swaps.
 
 Obviously, determining this ordering at runtime is a lot of work.
 Instead, specialised leaf routines that handle changing, e.g., the top
-and bottom -most three bits (in the right traversal order) are called
+and bottom -most three bits (in the right traversal order), are called
 with the middle bits found in a pre-sorted vector.
