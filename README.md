@@ -978,37 +978,40 @@ to specify the starting index of the vector to bit-reverse.
 Implementation
 --------------
 
-Napa-FFT3 is based on an in-place, out-of-order, split-radix
-Cooley-Tukey FFT algorithm.  Split-radix is relatively simple, and
-achieve operation counts very close (within a couple percents) to the
-minimum known so far.  Doing it out of order simplifies the transform
-code a lot; this way, all the accesses are naturally in-place and
-follow a streaming order, at each level of the recursion.  Moreover,
-by executing the recursion depth-first rather than breadth-first, the
-code exploits caches implicitly.  Finally, an in-place transform can
-hope to fit nearly twice as large inputs in cache as an out-of-place
-one, as there is no auxiliary output vector.  All in all, it looks
-like a good choice of algorithm.
+Napa-FFT3 is based on a split-radix, out-of-order and in-place variant
+of the Cooley-Tukey FFT algorithm.  Split-radix is relatively simple,
+and achieve operation counts very close (within a couple percents) to
+the minimum known so far.  Doing it out of order simplifies the
+transform code a lot; this way, all the accesses are naturally
+in-place and follow a streaming order, at each level of the recursion.
+Better: by executing the recursion depth-first rather than
+breadth-first, the code exploits caches implicitly.  Finally, an
+in-place transform can hope to fit nearly twice as large inputs in
+cache as an out-of-place one, as there is no auxiliary output vector.
+All in all, it looks like a good choice of algorithm: close enough to
+the theoretical optimum, interesting performance properties, and not
+too complex to implement.
 
-Many operations are naturally expressed on bit-reversed
-frequency-domain values (e.g. convolutions, or filtering noise out).
-That's not always the cache, unfortunately, so Napa-FFT also
-implements a bit-reversal pass.  In the past, this was often slow
-enough to make it vastly preferable to instead implement an in-order
-(autosorting) FFT: the slow bit-reversal is merged with the more
-arithmetic-heavy FFT, hopefully resulting in faster code than
-executing each one after the other.  However, as [Karp93] points out,
-that seems to be caused by bad bit reversal code than anything else.
-[Karter and Gatlin] build on that and describe an algorithm designed
-to exploit memory caches, ensuring at most two misses per cache line
-of data; this is enough to obtain better performance (or comparable)
-than all the algorithms reviewed in [Karp] across a range of
-nearly-contemporary machines.  [Zhang and Zhang], among other things,
-note that we can exploit the high associativity in certain caches to
-simplify the code a lot, or improve on its performance.  Their
-algorithms are somewhat complicated by explicit blocking, while a
-clever recursion suffices to obtain access patterns appropriate for
-nearly all block sizes.
+Many operations are as easily expressed on bit-reversed as on
+natural-order frequency-domain values (e.g. convolutions, or filtering
+noise out).  That's not always the case, unfortunately, so Napa-FFT
+also implements a bit-reversal pass.
+
+In the past, this was often slow enough to make it vastly preferable
+to instead implement an in-order (autosorting) FFT: the slow,
+bandwidth-bound, bit-reversal is merged with the more arithmetic-heavy
+FFT, hopefully resulting in faster code than executing each serially.
+However, as [Karp] points out, this seems to be better explained by
+bad code than anything else.  [Karter and Gatlin] build on that and
+describe an algorithm designed to exploit memory caches, ensuring at
+most two misses per cache line of data; this is enough to obtain much
+better performance (or comparable) than all the algorithms reviewed in
+[Karp] across a range of nearly-contemporary machines.  In a later
+paper, [Zhang and Zhang], note that we can exploit the high
+associativity in certain caches to simplify the code a lot, or improve
+on its performance.  Their algorithms are somewhat complicated by
+explicit blocking loops; a clever recursion suffices to obtain access
+patterns appropriate for nearly all block sizes.
 
 Split-radix FFT
 ===============
@@ -1035,9 +1038,9 @@ than sophisticated code like FFTW once that constraint is relaxed.
 
 The base cases are nevertheless incredibly naive, compared to FFTW's
 codelets.  For tiny transforms, Napa-FFT is clearly not in the same
-league; however, as cache effects gain importance, the algorithmic
-edge pays off, and out-of-order Napa-FFT closes the gap with FFTW.  It
-can even be slightly faster on very large transforms.
+league; however, as cache effects gain importance, the higher-level
+design choices pay off, and out-of-order Napa-FFT closes the gap with
+FFTW.  In fact, it is even slightly faster for very large transforms.
 
 Bit reversal
 ============
@@ -1101,6 +1104,7 @@ pages doesn't really improve runtimes.  I'm currently thinking that's
 because the traversal order is actually tuned for the last level TLB,
 which is fully-associative.  In the end, the net effect is that bit
 reversal of large vectors hits around 60 % of my workstation's
-out-of-cache streaming bandwidth (as measured by STREAM's copy loop).
-It's not instantaneous, but clearly not a serious performance issue.
+out-of-cache *streaming* bandwidth (as measured by STREAM's copy
+loop).  It's not instantaneous, but not an insurmountable handicap
+either.
 
