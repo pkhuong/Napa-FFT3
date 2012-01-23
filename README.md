@@ -982,40 +982,74 @@ Napa-FFT3 is based on an in-place, out-of-order, split-radix
 Cooley-Tukey FFT algorithm.  Split-radix is relatively simple, and
 achieve operation counts very close (within a couple percents) to the
 minimum known so far.  Doing it out of order simplifies the transform
-code a lot; this way, all the accesses are naturally in streaming
-order, at each level of the recursion.  Moreover, by executing the
-recursion depth-first rather than breadth-first, we obtain very good
-cache locality.  Out-of-orderness also makes it much easier to perform
-the transforms in-place; an in-place transform can hope to fit nearly
-twice as large inputs in cache as an out-of-place one.
+code a lot; this way, all the accesses are naturally in-place and
+follow a streaming order, at each level of the recursion.  Moreover,
+by executing the recursion depth-first rather than breadth-first, the
+code exploits caches implicitly.  Finally, an in-place transform can
+hope to fit nearly twice as large inputs in cache as an out-of-place
+one, as there is no auxiliary output vector.  All in all, it looks
+like a good choice of algorithm.
+
+Many operations are naturally expressed on bit-reversed
+frequency-domain values (e.g. convolutions, or filtering noise out).
+That's not always the cache, unfortunately, so Napa-FFT also
+implements a bit-reversal pass.  In the past, this was often slow
+enough to make it vastly preferable to instead implement an in-order
+(autosorting) FFT: the slow bit-reversal is merged with the more
+arithmetic-heavy FFT, hopefully resulting in faster code than
+executing each one after the other.  However, as [Karp93] points out,
+that seems to be caused by bad bit reversal code than anything else.
+[Karter and Gatlin] build on that and describe an algorithm designed
+to exploit memory caches, ensuring at most two misses per cache line
+of data; this is enough to obtain better performance (or comparable)
+than all the algorithms reviewed in [Karp] across a range of
+nearly-contemporary machines.  [Zhang and Zhang], among other things,
+note that we can exploit the high associativity in certain caches to
+simplify the code a lot, or improve on its performance.  Their
+algorithms are somewhat complicated by explicit blocking, while a
+clever recursion suffices to obtain access patterns appropriate for
+nearly all block sizes.
+
+Split-radix FFT
+===============
 
 The split-radix algorithm has a very short recursive definition;
 practically however, we want larger base cases than the strict
 minimum.  Rather than depending on hand-written specialised base
-cases, Napa-FFT3 has a specialised compiler that turns the execution
-trace for a given FFT into straight-line code.  This way, we maintain
-the near-optimal operation count, especially since the code to
-multiply by twiddle factors can be optimised for "nice" constants
-(e.g. 1, i,sqrt(i) or sqrt(-i)).  The specialised compiler takes care
-of spilling values to the data vector by using Belady's algorithm.
-This will tend to perform a lot better than common spilling logic
-(e.g. SBCL's coloring-based algorithm), and the spills are executed to
-correctly-aligned addresses, following a cache-friendly layout.
+cases, Napa-FFT3 includes a specialised compiler that turns the
+execution trace for a given FFT into straight-line code.  This way, we
+maintain the near-optimal operation count, especially since the code
+to multiply by twiddle factors can be optimised for "nice" constants
+(e.g. 1, i or sqrt(i)).  The specialised compiler takes care of
+spilling values to the data vector according to Belady's algorithm.
+This will tend to perform a lot better than general-purpose spilling
+logic (e.g. SBCL's coloring-based algorithm), and spilled values are
+stored at correctly-aligned addresses, following a cache-friendly
+layout.
 
 This, along with specialised recursive steps for each size, gives us
-high-performance out-of-order transforms; given that much of the
-complexity in FFTs comes from ensuring the data are in natural order,
-it's not surprising that simple code can achieve runtimes comparable
-or lower than sophisticated code like FFTW.
+high-performance out-of-order transforms.  Much of the complexity in
+FFTs comes from ensuring the data are in natural order; it's not
+surprising that simple code can achieve runtimes comparable or lower
+than sophisticated code like FFTW once that constraint is relaxed.
 
-More surprising might be the fact that bit-reversals are now so easy
-to design so they executed quickly as well.  Much of the runtime in
-Napa-FFT2 was caused by the transposition steps.  At first sight, a
-bit-reversal is even more complicated.  However, bit-reversals have
-the nice property that they only consist of swaps: they can be
-easily be executed in-place, by swapping each index with its
-bit-reversed value.  This is only true for transpose of square
-matrices (FFT sizes that are even powers of two).
+The base cases are nevertheless incredibly naive, compared to FFTW's
+codelets.  For tiny transforms, Napa-FFT is clearly not in the same
+league; however, as cache effects gain importance, the algorithmic
+edge pays off, and out-of-order Napa-FFT closes the gap with FFTW.  It
+can even be slightly faster on very large transforms.
+
+Bit reversal
+============
+
+More surprising might be the fact that quick bit-reversals are now so
+easy to design.  Much of the runtime in Napa-FFT2 was caused by the
+transposition steps.  At first sight, a bit-reversal is even more
+complicated.  However, bit-reversals have the nice property that they
+only consist of swaps: they can be easily be executed in-place, by
+swapping each element with its destination.  In contrast, this is only
+true for transpose of square matrices (FFT sizes that are even powers
+of two).
 
 Historically, on cache-ful computers, the issue with bit-reversal has
 been one of aliasing in low-associativity caches: the swap pattern
@@ -1029,7 +1063,7 @@ know what to do with, so caches are large and have high associativity
 Since we're mostly conerned with bit-reversing complex-sample-vectors,
 each element is a pair of double-floats, and only 4 fit in each cache
 line.  In this case, as [Zhang and Zhang 99] point out, the
-associativity is large enough not to necessitate any software
+associativity is high enough not to necessitate any software
 buffering!
 
 The novel part seems to be the traversal order.  [Zhang and Zhang 99]
@@ -1038,13 +1072,13 @@ point out that blocking helps with locality, and a few older work
 generated recursively.  The blocking described in [Zhang and Zhang 99]
 is very much cache-aware, and must be explicitly structured to take
 advantage of cache levels and TLBs.  It seems that all the
-recursively-generated swaps generate from the outside in; that is, the
-leaf of the recursion have all the bits fixed except for the middle
-ones.  If we wish to enhance locality, we should fix the middle bit
-first, and, at the leavse, have the outermost (i.e. most significant,
-but also least significant) bits vary.  This way, we implicitly get
-blocking for any cache line size (given sufficient associativity), but
-also for fully-associative TLBs.
+recursively-generated swaps generate indices to swap from the outside
+in; that is, the leaf of the recursion have all the bits fixed except
+for the middle ones.  If we wish to enhance locality, we should fix
+the middle bit first, and, at the leaves, have the outermost
+(i.e. most significant, but also least significant) bits vary.  This
+way, we implicitly get blocking for any cache line size (given
+sufficient associativity), but also for fully-associative TLBs.
 
 Another way to see this is that each swap tends to be between vastly
 different indices (bit reversal is bad for locality).  One classic way
@@ -1058,3 +1092,15 @@ Obviously, determining this ordering at runtime is a lot of work.
 Instead, specialised leaf routines that handle changing, e.g., the top
 and bottom -most three bits (in the right traversal order), are called
 with the middle bits found in a pre-sorted vector.
+
+On my workstation, this results in .3 cache miss/element (for complex
+double floats), which is only a bit more than the compulsory .25
+miss/element.  Surprisingly, while there are a lot ofTLB misses (at
+the first level, I suppose), eliminating them by switching to huge
+pages doesn't really improve runtimes.  I'm currently thinking that's
+because the traversal order is actually tuned for the last level TLB,
+which is fully-associative.  In the end, the net effect is that bit
+reversal of large vectors hits around 60 % of my workstation's
+out-of-cache streaming bandwidth (as measured by STREAM's copy loop).
+It's not instantaneous, but clearly not a serious performance issue.
+
