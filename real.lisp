@@ -190,7 +190,7 @@
            (optimize speed))
   (let* ((size (or size (length vec)))
          (vec  (complex-samplify vec size))
-         (window (window-vector window-fn size :bit-reverse t)))
+         (window (window-vector window-fn size)))
     (declare (type size size)
              (type real-sample-array window))
     (assert (power-of-two-p size))
